@@ -507,6 +507,6 @@ document.addEventListener('DOMContentLoaded', function() {
   initCharts();
   cargarOpciones().then(function() {
     refreshAll();
-    setInterval(refreshAll, 100);
+    setInterval(refreshAll, 1000);
   });
 });
