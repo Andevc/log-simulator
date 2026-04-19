@@ -302,5 +302,5 @@ async function refreshAll() {
 document.addEventListener('DOMContentLoaded', function() {
   initCharts();
   refreshAll();
-  setInterval(refreshAll, 3000);
+  setInterval(refreshAll, 100);
 });
