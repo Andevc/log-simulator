@@ -12,13 +12,14 @@ from __future__ import annotations
 
 import os
 import sys
+import uuid
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
 from cassandra.cluster import Cluster
 from cassandra.policies import RoundRobinPolicy
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory
 
 
 # ─── Configuracion ────────────────────────────────────────────────────────────
@@ -84,6 +85,10 @@ def ultimas_24h():
 @app.route("/")
 def index():
     return send_from_directory("static", "index.html")
+
+@app.route("/usuario")
+def usuario():
+    return send_from_directory("static", "usuario.html")
 
 
 # ─── KPIs generales ───────────────────────────────────────────────────────────
@@ -257,6 +262,210 @@ def logs_recientes():
     # Ordenar por timestamp descendente y tomar los 50 mas recientes
     todos.sort(key=lambda x: x["timestamp"], reverse=True)
     return jsonify(todos[:50])
+
+
+# ─── Accion de usuario (simulador) ───────────────────────────────────────────
+
+@app.route("/accion", methods=["POST"])
+def accion_usuario():
+    """
+    Recibe un click del simulador de usuario.
+    Verifica si la IP esta bloqueada antes de insertar el log.
+    Body JSON: { ip, endpoint, metodo }
+    """
+    import random
+    data     = request.get_json(silent=True) or {}
+    ip       = data.get("ip", "192.168.1.1")
+    endpoint = data.get("endpoint", "/api/users")
+    metodo   = data.get("metodo", "GET")
+
+    # Verificar si la IP esta bloqueada
+    row = session.execute(
+        "SELECT ip FROM ips_bloqueadas WHERE ip=%s", (ip,)
+    ).one()
+
+    if row:
+        # Registrar intento en historial e incrementar contador
+        session.execute(
+            "INSERT INTO intentos_bloqueados (ip, ts, endpoint, metodo) VALUES (%s, %s, %s, %s)",
+            (ip, datetime.utcnow(), endpoint, metodo)
+        )
+        session.execute(
+            "UPDATE ips_bloqueadas SET intentos = intentos + 1 WHERE ip=%s", (ip,)
+        )
+        return jsonify({"bloqueada": True, "mensaje": "IP bloqueada — acceso denegado"}), 403
+    
+    # Generar el log
+    ahora   = datetime.utcnow()
+    log_id  = uuid.uuid4()
+    codigo  = random.choices(
+        [200, 200, 200, 201, 400, 404, 500, 503],
+        weights=[40, 15, 15, 10, 8, 6, 4, 2],
+        k=1
+    )[0]
+
+    if codigo >= 500:
+        latencia = random.randint(800, 3000)
+    elif codigo >= 400:
+        latencia = random.randint(200, 800)
+    else:
+        latencia = random.randint(20, 300)
+
+    # Doble-write
+    session.execute(
+        """INSERT INTO logs_por_hora
+           (fecha, hora, log_id, ip_cliente, endpoint, metodo, codigo_http, latencia_ms, ts)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+        (ahora.date(), ahora.hour, log_id, ip, endpoint, metodo, codigo, latencia, ahora)
+    )
+    session.execute(
+        """INSERT INTO logs_por_endpoint
+           (endpoint, ts, log_id, ip_cliente, metodo, codigo_http, latencia_ms)
+           VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+        (endpoint, ahora, log_id, ip, metodo, codigo, latencia)
+    )
+
+    return jsonify({
+        "bloqueada":   False,
+        "codigo":      codigo,
+        "latencia_ms": latencia,
+        "timestamp":   ahora.strftime("%H:%M:%S"),
+    })
+
+
+# ─── CRUD IPs bloqueadas ──────────────────────────────────────────────────────
+
+# ─── CRUD IPs bloqueadas ──────────────────────────────────────────────────────
+
+MOTIVOS_VALIDOS = [
+    "Actividad sospechosa",
+    "Demasiados errores 500",
+    "Fuerza bruta detectada",
+    "IP desconocida",
+    "Acceso no autorizado",
+    "Mantenimiento",
+]
+
+NIVELES_VALIDOS = ["BAJO", "MEDIO", "ALTO"]
+
+
+@app.route("/ips/bloqueadas", methods=["GET"])
+def listar_ips():
+    rows = session.execute("SELECT ip, motivo, nivel, bloqueada_en, intentos FROM ips_bloqueadas")
+    resultado = []
+    for row in rows:
+        resultado.append({
+            "ip":          row.ip,
+            "motivo":      row.motivo or "Actividad sospechosa",
+            "nivel":       row.nivel  or "BAJO",
+            "intentos":    row.intentos or 0,
+            "bloqueada_en": row.bloqueada_en.strftime("%H:%M:%S %d/%m/%Y") if row.bloqueada_en else "",
+        })
+    return jsonify(resultado)
+
+
+@app.route("/ips/bloquear", methods=["POST"])
+def bloquear_ip():
+    data   = request.get_json(silent=True) or {}
+    ip     = data.get("ip", "").strip()
+    motivo = data.get("motivo", "Actividad sospechosa").strip()
+    nivel  = data.get("nivel", "BAJO").strip().upper()
+
+    if not ip:
+        return jsonify({"error": "IP requerida"}), 400
+    if motivo not in MOTIVOS_VALIDOS:
+        motivo = MOTIVOS_VALIDOS[0]
+    if nivel not in NIVELES_VALIDOS:
+        nivel = "BAJO"
+
+    session.execute(
+        "INSERT INTO ips_bloqueadas (ip, motivo, nivel, bloqueada_en, intentos) VALUES (%s, %s, %s, %s, %s)",
+        (ip, motivo, nivel, datetime.utcnow(), 0)
+    )
+    return jsonify({"ok": True, "ip": ip, "motivo": motivo, "nivel": nivel})
+
+
+@app.route("/ips/editar/<ip>", methods=["PUT"])
+def editar_ip(ip):
+    """Actualiza motivo y/o nivel de una IP bloqueada."""
+    data   = request.get_json(silent=True) or {}
+    motivo = data.get("motivo", "").strip()
+    nivel  = data.get("nivel", "").strip().upper()
+
+    if motivo not in MOTIVOS_VALIDOS:
+        return jsonify({"error": "Motivo no valido"}), 400
+    if nivel not in NIVELES_VALIDOS:
+        return jsonify({"error": "Nivel no valido"}), 400
+
+    session.execute(
+        "UPDATE ips_bloqueadas SET motivo=%s, nivel=%s WHERE ip=%s",
+        (motivo, nivel, ip)
+    )
+    return jsonify({"ok": True, "ip": ip, "motivo": motivo, "nivel": nivel})
+
+
+@app.route("/ips/desbloquear/<ip>", methods=["DELETE"])
+def desbloquear_ip(ip):
+    session.execute("DELETE FROM ips_bloqueadas WHERE ip=%s", (ip,))
+    return jsonify({"ok": True, "ip": ip})
+
+
+@app.route("/ips/intento", methods=["POST"])
+def registrar_intento():
+    """Registra un intento de acceso de una IP bloqueada e incrementa su contador."""
+    data     = request.get_json(silent=True) or {}
+    ip       = data.get("ip", "")
+    endpoint = data.get("endpoint", "")
+    metodo   = data.get("metodo", "GET")
+
+    # Registrar en historial
+    session.execute(
+        "INSERT INTO intentos_bloqueados (ip, ts, endpoint, metodo) VALUES (%s, %s, %s, %s)",
+        (ip, datetime.utcnow(), endpoint, metodo)
+    )
+    # Incrementar contador (UPDATE en Cassandra)
+    session.execute(
+        "UPDATE ips_bloqueadas SET intentos = intentos + 1 WHERE ip=%s", (ip,)
+    )
+    return jsonify({"ok": True})
+
+
+@app.route("/ips/historial", methods=["GET"])
+def historial_intentos():
+    """Retorna los ultimos intentos de acceso bloqueados."""
+    ip = request.args.get("ip", None)
+    todos = []
+
+    if ip:
+        rows = session.execute(
+            "SELECT ip, ts, endpoint, metodo FROM intentos_bloqueados WHERE ip=%s LIMIT 20", (ip,)
+        )
+    else:
+        # Sin ip: traer de todas las IPs bloqueadas actuales
+        ips_rows = session.execute("SELECT ip FROM ips_bloqueadas")
+        rows = []
+        for r in ips_rows:
+            sub = session.execute(
+                "SELECT ip, ts, endpoint, metodo FROM intentos_bloqueados WHERE ip=%s LIMIT 5", (r.ip,)
+            )
+            rows.extend(sub)
+
+    for row in rows:
+        todos.append({
+            "ip":       row.ip,
+            "ts":       row.ts.strftime("%H:%M:%S") if row.ts else "",
+            "endpoint": row.endpoint,
+            "metodo":   row.metodo,
+        })
+
+    todos.sort(key=lambda x: x["ts"], reverse=True)
+    return jsonify(todos[:30])
+
+
+@app.route("/ips/motivos", methods=["GET"])
+def motivos():
+    """Retorna las listas de motivos y niveles validos para los dropdowns."""
+    return jsonify({"motivos": MOTIVOS_VALIDOS, "niveles": NIVELES_VALIDOS})
 
 
 # ─── Entry point ──────────────────────────────────────────────────────────────

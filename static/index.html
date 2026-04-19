@@ -296,6 +296,72 @@
     .code-4xx { color: var(--warn);    }
     .code-5xx { color: var(--danger);  }
 
+    /* ── Alertas ── */
+    .alertas-zona { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+
+    .alerta-banner {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      border-left: 3px solid;
+      font-size: 12px;
+      animation: pulseAlert 2s ease-in-out infinite;
+    }
+
+    @keyframes pulseAlert { 0%,100%{opacity:1} 50%{opacity:.7} }
+
+    .alerta-danger { background: rgba(255,59,92,0.1); border-color: var(--danger); color: var(--danger); }
+    .alerta-warn   { background: rgba(255,107,53,0.1); border-color: var(--warn); color: var(--warn); }
+    .alerta-titulo { font-weight: 700; letter-spacing: 0.06em; }
+    .alerta-valor  { font-weight: 700; margin-left: auto; font-size: 14px; }
+
+    /* ── Panel IPs bloqueadas ── */
+    .ips-panel { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 14px; }
+    .ips-form  { display: flex; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+
+    .ips-input {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+      padding: 7px 12px; color: var(--text); font-family: var(--mono); font-size: 12px;
+      outline: none; transition: border-color 0.2s;
+    }
+    .ips-input:focus { border-color: var(--danger); }
+    .ips-input.wide  { flex: 1; min-width: 120px; }
+
+    .btn-bloquear {
+      padding: 7px 16px; background: rgba(255,59,92,0.15); border: 1px solid var(--danger);
+      border-radius: 6px; color: var(--danger); font-family: var(--mono); font-size: 11px;
+      font-weight: 700; cursor: pointer; letter-spacing: 0.06em; transition: all 0.2s; white-space: nowrap;
+    }
+    .btn-bloquear:hover { background: rgba(255,59,92,0.25); }
+
+    .lista-ips { padding: 4px 0; min-height: 44px; }
+
+    .ip-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 16px; border-bottom: 1px solid var(--border);
+    }
+    .ip-row:last-child { border-bottom: none; }
+    .ip-addr { font-size: 12px; font-weight: 700; color: var(--danger); margin-bottom: 2px; }
+    .ip-meta { font-size: 10px; color: var(--muted); }
+
+    .btn-desbloquear {
+      padding: 4px 12px; background: transparent; border: 1px solid var(--border2);
+      border-radius: 5px; color: var(--muted); font-family: var(--mono); font-size: 10px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-desbloquear:hover { color: var(--accent); border-color: var(--accent); }
+    .ips-empty { text-align: center; color: var(--muted); font-size: 11px; padding: 14px; }
+
+    .simulador-link {
+      display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px;
+      background: rgba(0,153,255,0.1); border: 1px solid rgba(0,153,255,0.3);
+      border-radius: 7px; color: var(--accent2); font-size: 11px; font-weight: 700;
+      text-decoration: none; letter-spacing: 0.05em; transition: all 0.2s;
+    }
+    .simulador-link:hover { background: rgba(0,153,255,0.2); }
+
     /* ── Loading skeleton ── */
     .skeleton {
       background: linear-gradient(90deg, var(--border) 25%, var(--border2) 50%, var(--border) 75%);
@@ -326,6 +392,46 @@
       .charts-grid  { grid-template-columns: 1fr; }
       .charts-bottom{ grid-template-columns: 1fr; }
     }
+
+
+    /* ── Edición inline de IPs ── */
+.ip-row        { flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px 16px; }
+.ip-info       { width: 100%; display: flex; align-items: center; gap: 10px; }
+.ip-editar     { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; width: 100%; }
+
+.nivel-badge   { font-size: 9px; font-weight: 700; padding: 1px 7px; border-radius: 4px; letter-spacing: 0.08em; }
+.nivel-bajo    { background: rgba(0,212,170,0.15);  color: var(--accent);  }
+.nivel-medio   { background: rgba(255,107,53,0.15); color: var(--warn);    }
+.nivel-alto    { background: rgba(255,59,92,0.2);   color: var(--danger);  animation: pulseAlert 1.5s ease-in-out infinite; }
+
+.intentos-badge { font-size: 9px; color: var(--muted); background: var(--border); padding: 1px 7px; border-radius: 4px; }
+
+.ip-select {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 5px; color: var(--text); font-family: var(--mono);
+  font-size: 11px; padding: 5px 8px; cursor: pointer; outline: none;
+}
+.ip-select:focus { border-color: var(--accent2); }
+
+.btn-guardar {
+  padding: 5px 12px; background: rgba(0,153,255,0.15);
+  border: 1px solid var(--accent2); border-radius: 5px;
+  color: var(--accent2); font-family: var(--mono); font-size: 10px;
+  font-weight: 700; cursor: pointer; transition: all 0.2s;
+}
+.btn-guardar:hover { background: rgba(0,153,255,0.25); }
+
+/* ── Historial de intentos ── */
+.historial-lista { padding: 4px 0; max-height: 200px; overflow-y: auto; }
+.historial-item  {
+  display: flex; gap: 10px; align-items: center;
+  padding: 6px 16px; border-bottom: 1px solid var(--border);
+  font-size: 11px;
+}
+.historial-item:last-child { border-bottom: none; }
+.hist-ts       { color: var(--muted); min-width: 58px; font-size: 10px; }
+.hist-ip       { color: var(--danger); font-weight: 700; min-width: 110px; }
+.hist-endpoint { color: var(--text); flex: 1; }
   </style>
 </head>
 <body>
@@ -339,6 +445,7 @@
     </div>
   </div>
   <div class="header-right">
+    <a href="/usuario" class="simulador-link">Simulador de Usuario →</a>
     <div class="status-dot"></div>
     <span class="status-text">Live</span>
     <span id="last-update">—</span>
@@ -414,6 +521,48 @@
       </div>
     </div>
   </div>
+
+  <!-- Alertas automaticas -->
+  <div class="alertas-zona">
+    <div class="alerta-banner alerta-danger" id="alerta-tasa">
+      <span class="alerta-titulo">⚠ ALERTA — Tasa de error elevada</span>
+      <span style="color:var(--muted);font-size:11px">supera el umbral del 10%</span>
+      <span class="alerta-valor" id="val-tasa">—</span>
+    </div>
+    <div class="alerta-banner alerta-warn" id="alerta-latencia">
+      <span class="alerta-titulo">⚠ ALERTA — Latencia alta</span>
+      <span style="color:var(--muted);font-size:11px">supera los 800ms promedio</span>
+      <span class="alerta-valor" id="val-lat">—</span>
+    </div>
+  </div>
+
+  <!-- Panel IPs bloqueadas -->
+  <div class="ips-panel">
+    <div class="card-header" style="padding:12px 16px;margin:0;border-bottom:1px solid var(--border)">
+      <span class="card-title">Firewall — IPs Bloqueadas</span>
+      <span class="card-badge">CRUD · Cassandra</span>
+    </div>
+    <div class="ips-form">
+      <input class="ips-input wide" id="input-ip-bloquear"
+        type="text" placeholder="IP a bloquear  ej: 192.168.1.55" />
+      <input class="ips-input" id="input-motivo"
+        type="text" placeholder="Motivo (opcional)" style="width:180px" />
+      <button class="btn-bloquear" onclick="bloquearIPManual()">⛔ Bloquear IP</button>
+    </div>
+    <div class="lista-ips" id="lista-ips">
+      <div class="ips-empty">Sin IPs bloqueadas</div>
+    </div>
+  </div>
+  <!-- Historial de intentos bloqueados -->
+<div class="ips-panel">
+  <div class="card-header" style="padding:12px 16px;margin:0;border-bottom:1px solid var(--border)">
+    <span class="card-title">Historial — Intentos Bloqueados</span>
+    <span class="card-badge">tiempo real</span>
+  </div>
+  <div class="historial-lista" id="historial-lista">
+    <div class="ips-empty">Sin intentos registrados</div>
+  </div>
+</div>
 
   <!-- Tabla de logs recientes -->
   <div class="logs-card">

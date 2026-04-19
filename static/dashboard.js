@@ -1,7 +1,7 @@
 /**
  * dashboard.js
  * Consulta los endpoints REST de Flask cada 3 segundos
- * y actualiza las graficas y KPIs del dashboard.
+ * y actualiza graficas, KPIs, IPs bloqueadas e historial.
  */
 
 'use strict';
@@ -17,7 +17,6 @@ const C = {
   border:  '#1e2430',
   surface: '#161a22',
   text:    '#e2e8f0',
-  // Colores para dona/barras de endpoints
   endpoints: [
     '#00d4aa','#0099ff','#ff6b35','#9b59b6',
     '#f39c12','#1abc9c','#e74c3c','#3498db',
@@ -27,27 +26,29 @@ const C = {
 
 // ─── Config global de Chart.js ────────────────────────────────────────────────
 
-Chart.defaults.color          = C.muted;
-Chart.defaults.font.family    = "'JetBrains Mono', monospace";
-Chart.defaults.font.size      = 11;
-Chart.defaults.borderColor    = C.border;
+Chart.defaults.color       = C.muted;
+Chart.defaults.font.family = "'JetBrains Mono', monospace";
+Chart.defaults.font.size   = 11;
+Chart.defaults.borderColor = C.border;
 
-// ─── Estado de las graficas ───────────────────────────────────────────────────
+// ─── Estado ───────────────────────────────────────────────────────────────────
 
-let charts = {};
+var charts  = {};
+var MOTIVOS = [];
+var NIVELES = [];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function fmt(n) {
   if (n === null || n === undefined) return '—';
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
-  if (n >= 1_000)     return (n / 1_000).toFixed(1) + 'K';
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+  if (n >= 1000)    return (n / 1000).toFixed(1) + 'K';
   return String(n);
 }
 
-function animateValue(el, newVal, formatter) {
+function animateValue(el, newVal) {
   if (!el) return;
-  el.textContent = formatter ? formatter(newVal) : newVal;
+  el.textContent = newVal;
 }
 
 function codigoBadgeClass(codigo) {
@@ -58,7 +59,7 @@ function codigoBadgeClass(codigo) {
 }
 
 function metodoBadgeClass(metodo) {
-  const map = { GET: 'badge-get', POST: 'badge-post', PUT: 'badge-put', DELETE: 'badge-delete' };
+  var map = { GET: 'badge-get', POST: 'badge-post', PUT: 'badge-put', DELETE: 'badge-delete' };
   return map[metodo] || 'badge-get';
 }
 
@@ -69,14 +70,14 @@ function shortEndpoint(ep) {
 // ─── Inicializacion de graficas ───────────────────────────────────────────────
 
 function initCharts() {
-  const baseOptions = {
+  var baseOptions = {
     responsive: true,
     maintainAspectRatio: false,
     animation: { duration: 400 },
     plugins: { legend: { display: false } },
   };
 
-  // Grafica de linea: trafico por hora
+  // Linea: trafico por hora
   charts.trafico = new Chart(
     document.getElementById('chart-trafico').getContext('2d'),
     {
@@ -106,7 +107,7 @@ function initCharts() {
     }
   );
 
-  // Grafica de dona: top endpoints
+  // Dona: top endpoints
   charts.endpoints = new Chart(
     document.getElementById('chart-endpoints').getContext('2d'),
     {
@@ -131,8 +132,7 @@ function initCharts() {
               boxWidth: 10,
               padding: 8,
               generateLabels: function(chart) {
-                const data = chart.data;
-                return data.labels.map(function(label, i) {
+                return chart.data.labels.map(function(label, i) {
                   return {
                     text: shortEndpoint(label),
                     fillStyle: C.endpoints[i % C.endpoints.length],
@@ -149,7 +149,7 @@ function initCharts() {
     }
   );
 
-  // Grafica de barras: errores 5xx por hora
+  // Barras: errores 5xx por hora
   charts.errores = new Chart(
     document.getElementById('chart-errores').getContext('2d'),
     {
@@ -172,7 +172,7 @@ function initCharts() {
     }
   );
 
-  // Grafica de barras horizontales: latencia por endpoint
+  // Barras horizontales: latencia por endpoint
   charts.latencia = new Chart(
     document.getElementById('chart-latencia').getContext('2d'),
     {
@@ -192,7 +192,7 @@ function initCharts() {
           x: { grid: { color: C.border }, beginAtZero: true,
                title: { display: true, text: 'ms', color: C.muted } },
           y: { grid: { display: false },
-               ticks: { callback: function(val, idx) {
+               ticks: { callback: function(val) {
                  return shortEndpoint(this.getLabelForValue(val));
                }}},
         },
@@ -201,53 +201,60 @@ function initCharts() {
   );
 }
 
-// ─── Actualizacion de datos ───────────────────────────────────────────────────
+// ─── Fetch base ───────────────────────────────────────────────────────────────
 
 async function fetchJSON(url) {
-  const res = await fetch(url);
+  var res = await fetch(url);
   if (!res.ok) throw new Error('HTTP ' + res.status + ' en ' + url);
   return res.json();
 }
 
+// ─── KPIs ─────────────────────────────────────────────────────────────────────
+
 async function actualizarKPIs() {
-  const data = await fetchJSON('/stats/kpis');
-  animateValue(document.getElementById('kpi-total'),   fmt(data.total));
-  animateValue(document.getElementById('kpi-errores'), fmt(data.errores));
-  animateValue(document.getElementById('kpi-tasa'),    data.tasa_error + '%');
+  var data = await fetchJSON('/stats/kpis');
+  animateValue(document.getElementById('kpi-total'),    fmt(data.total));
+  animateValue(document.getElementById('kpi-errores'),  fmt(data.errores));
+  animateValue(document.getElementById('kpi-tasa'),     data.tasa_error + '%');
   animateValue(document.getElementById('kpi-latencia'), data.latencia + 'ms');
 }
 
+// ─── Graficas ─────────────────────────────────────────────────────────────────
+
 async function actualizarTrafico() {
-  const data = await fetchJSON('/stats/trafico');
-  charts.trafico.data.labels   = data.map(function(d) { return d.hora; });
+  var data = await fetchJSON('/stats/trafico');
+  charts.trafico.data.labels = data.map(function(d) { return d.hora; });
   charts.trafico.data.datasets[0].data = data.map(function(d) { return d.requests; });
   charts.trafico.update();
 }
 
 async function actualizarEndpoints() {
-  const data = await fetchJSON('/stats/top-endpoints');
+  var data = await fetchJSON('/stats/top-endpoints');
   charts.endpoints.data.labels = data.map(function(d) { return d.endpoint; });
   charts.endpoints.data.datasets[0].data = data.map(function(d) { return d.total; });
   charts.endpoints.update();
 }
 
 async function actualizarErrores() {
-  const data = await fetchJSON('/stats/errores');
-  charts.errores.data.labels   = data.map(function(d) { return d.hora; });
+  var data = await fetchJSON('/stats/errores');
+  charts.errores.data.labels = data.map(function(d) { return d.hora; });
   charts.errores.data.datasets[0].data = data.map(function(d) { return d.errores; });
   charts.errores.update();
 }
 
 async function actualizarLatencia() {
-  const data = await fetchJSON('/stats/latencia');
-  charts.latencia.data.labels  = data.map(function(d) { return d.endpoint; });
+  var data = await fetchJSON('/stats/latencia');
+  charts.latencia.data.labels = data.map(function(d) { return d.endpoint; });
   charts.latencia.data.datasets[0].data = data.map(function(d) { return d.latencia_promedio; });
   charts.latencia.update();
 }
 
+// ─── Tabla de logs recientes ──────────────────────────────────────────────────
+
 async function actualizarTabla() {
-  const data = await fetchJSON('/logs/recientes');
-  const tbody = document.getElementById('tabla-logs');
+  var data  = await fetchJSON('/logs/recientes');
+  var tbody = document.getElementById('tabla-logs');
+  if (!tbody) return;
 
   if (!data || data.length === 0) {
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">Sin datos</td></tr>';
@@ -258,17 +265,20 @@ async function actualizarTabla() {
   data.forEach(function(log) {
     var codigoClass = codigoBadgeClass(log.codigo);
     var metodoClass = metodoBadgeClass(log.metodo);
-    html += '<tr>' +
-      '<td>' + log.timestamp + '</td>' +
-      '<td style="color:var(--muted)">' + log.ip + '</td>' +
-      '<td><span class="badge ' + metodoClass + '">' + log.metodo + '</span></td>' +
-      '<td style="color:var(--text)">' + log.endpoint + '</td>' +
-      '<td><span class="' + codigoClass + '">' + log.codigo + '</span></td>' +
-      '<td style="color:var(--muted)">' + log.latencia_ms + ' ms</td>' +
+    html +=
+      '<tr>' +
+        '<td>' + log.timestamp + '</td>' +
+        '<td style="color:var(--muted)">' + log.ip + '</td>' +
+        '<td><span class="badge ' + metodoClass + '">' + log.metodo + '</span></td>' +
+        '<td style="color:var(--text)">' + log.endpoint + '</td>' +
+        '<td><span class="' + codigoClass + '">' + log.codigo + '</span></td>' +
+        '<td style="color:var(--muted)">' + log.latencia_ms + ' ms</td>' +
       '</tr>';
   });
   tbody.innerHTML = html;
 }
+
+// ─── Timestamp ────────────────────────────────────────────────────────────────
 
 function actualizarTimestamp() {
   var ahora = new Date();
@@ -276,6 +286,197 @@ function actualizarTimestamp() {
   var m = String(ahora.getMinutes()).padStart(2, '0');
   var s = String(ahora.getSeconds()).padStart(2, '0');
   document.getElementById('last-update').textContent = 'actualizado ' + h + ':' + m + ':' + s;
+}
+
+// ─── Opciones del CRUD (se cargan una sola vez al inicio) ─────────────────────
+
+async function cargarOpciones() {
+  try {
+    var data = await fetchJSON('/ips/motivos');
+    MOTIVOS  = data.motivos;
+    NIVELES  = data.niveles;
+  } catch (e) {
+    MOTIVOS = [
+      'Actividad sospechosa', 'Demasiados errores 500', 'Fuerza bruta detectada',
+      'IP desconocida', 'Acceso no autorizado', 'Mantenimiento',
+    ];
+    NIVELES = ['BAJO', 'MEDIO', 'ALTO'];
+  }
+
+  // Poblar el select de motivo del formulario de bloqueo
+  var selMotivo = document.getElementById('select-motivo-nuevo');
+  var selNivel  = document.getElementById('select-nivel-nuevo');
+
+  if (selMotivo) {
+    MOTIVOS.forEach(function(m) {
+      var opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = m;
+      selMotivo.appendChild(opt);
+    });
+  }
+  if (selNivel) {
+    NIVELES.forEach(function(n) {
+      var opt = document.createElement('option');
+      opt.value = n;
+      opt.textContent = n;
+      selNivel.appendChild(opt);
+    });
+  }
+}
+
+// ─── CRUD IPs bloqueadas ──────────────────────────────────────────────────────
+
+async function actualizarIPsBloqueadas() {
+  var data  = await fetchJSON('/ips/bloqueadas');
+  var lista = document.getElementById('lista-ips');
+  if (!lista) return;
+
+  if (!data || data.length === 0) {
+    lista.innerHTML = '<div class="ips-empty">Sin IPs bloqueadas</div>';
+    return;
+  }
+
+  var motivosOpts = MOTIVOS.map(function(m) {
+    return '<option value="' + m + '">' + m + '</option>';
+  }).join('');
+
+  var nivelesOpts = NIVELES.map(function(n) {
+    return '<option value="' + n + '">' + n + '</option>';
+  }).join('');
+
+  var html = '';
+  data.forEach(function(item) {
+    var key        = item.ip.replace(/\./g, '-');
+    var nivelClass = item.nivel === 'ALTO' ? 'nivel-alto'
+                   : item.nivel === 'MEDIO' ? 'nivel-medio'
+                   : 'nivel-bajo';
+
+    var mOpts = motivosOpts.replace(
+      'value="' + item.motivo + '"',
+      'value="' + item.motivo + '" selected'
+    );
+    var nOpts = nivelesOpts.replace(
+      'value="' + item.nivel + '"',
+      'value="' + item.nivel + '" selected'
+    );
+
+    html +=
+      '<div class="ip-row" id="row-' + key + '">' +
+        '<div class="ip-info">' +
+          '<div class="ip-addr">' +
+            item.ip +
+            ' <span class="nivel-badge ' + nivelClass + '">' + item.nivel + '</span>' +
+            ' <span class="intentos-badge">' + item.intentos + ' intentos</span>' +
+          '</div>' +
+          '<div class="ip-meta">' + item.bloqueada_en + '</div>' +
+        '</div>' +
+        '<div class="ip-editar">' +
+          '<select class="ip-select" id="motivo-' + key + '">' + mOpts + '</select>' +
+          '<select class="ip-select" id="nivel-'  + key + '">' + nOpts + '</select>' +
+          '<button class="btn-guardar"     onclick="editarIP(\''      + item.ip + '\')">Guardar</button>' +
+          '<button class="btn-desbloquear" onclick="desbloquearIP(\'' + item.ip + '\')">Eliminar</button>' +
+        '</div>' +
+      '</div>';
+  });
+  lista.innerHTML = html;
+}
+
+function bloquearIPManual() {
+  var inputIP  = document.getElementById('input-ip-bloquear');
+  var selMot   = document.getElementById('select-motivo-nuevo');
+  var selNiv   = document.getElementById('select-nivel-nuevo');
+  var ip       = (inputIP ? inputIP.value : '').trim();
+  var motivo   = selMot ? selMot.value : 'Actividad sospechosa';
+  var nivel    = selNiv ? selNiv.value : 'BAJO';
+
+  if (!ip) { alert('Ingresa una IP'); return; }
+
+  fetch('/ips/bloquear', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ip: ip, motivo: motivo, nivel: nivel }),
+  })
+  .then(function() {
+    if (inputIP) inputIP.value = '';
+    actualizarIPsBloqueadas();
+  })
+  .catch(function(err) { console.error('Error al bloquear:', err); });
+}
+
+function editarIP(ip) {
+  var key    = ip.replace(/\./g, '-');
+  var motivo = document.getElementById('motivo-' + key);
+  var nivel  = document.getElementById('nivel-'  + key);
+  if (!motivo || !nivel) return;
+
+  fetch('/ips/editar/' + encodeURIComponent(ip), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ motivo: motivo.value, nivel: nivel.value }),
+  })
+  .then(function() { actualizarIPsBloqueadas(); })
+  .catch(function(err) { console.error('Error al editar:', err); });
+}
+
+function desbloquearIP(ip) {
+  fetch('/ips/desbloquear/' + encodeURIComponent(ip), { method: 'DELETE' })
+    .then(function() {
+      actualizarIPsBloqueadas();
+      actualizarHistorial();
+    })
+    .catch(function(err) { console.error('Error al desbloquear:', err); });
+}
+
+// ─── Historial de intentos bloqueados ────────────────────────────────────────
+
+async function actualizarHistorial() {
+  var data  = await fetchJSON('/ips/historial');
+  var lista = document.getElementById('historial-lista');
+  if (!lista) return;
+
+  if (!data || data.length === 0) {
+    lista.innerHTML = '<div class="ips-empty">Sin intentos registrados</div>';
+    return;
+  }
+
+  var html = '';
+  data.forEach(function(item) {
+    var mClass = 'm-' + (item.metodo || 'get').toLowerCase();
+    html +=
+      '<div class="historial-item">' +
+        '<span class="hist-ts">'       + item.ts       + '</span>' +
+        '<span class="hist-ip">'       + item.ip       + '</span>' +
+        '<span class="feed-metodo '    + mClass + '" style="font-size:10px">' + item.metodo + '</span>' +
+        '<span class="hist-endpoint">' + item.endpoint + '</span>' +
+      '</div>';
+  });
+  lista.innerHTML = html;
+}
+
+// ─── Alertas automaticas ──────────────────────────────────────────────────────
+
+async function verificarAlertas() {
+  var kpis       = await fetchJSON('/stats/kpis');
+  var bannerTasa = document.getElementById('alerta-tasa');
+  var bannerLat  = document.getElementById('alerta-latencia');
+  var valTasa    = document.getElementById('val-tasa');
+  var valLat     = document.getElementById('val-lat');
+  if (!bannerTasa || !bannerLat) return;
+
+  if (kpis.tasa_error > 10) {
+    bannerTasa.style.display = 'flex';
+    if (valTasa) valTasa.textContent = kpis.tasa_error + '%';
+  } else {
+    bannerTasa.style.display = 'none';
+  }
+
+  if (kpis.latencia > 800) {
+    bannerLat.style.display = 'flex';
+    if (valLat) valLat.textContent = kpis.latencia + 'ms';
+  } else {
+    bannerLat.style.display = 'none';
+  }
 }
 
 // ─── Ciclo de refresco ────────────────────────────────────────────────────────
@@ -289,6 +490,9 @@ async function refreshAll() {
       actualizarErrores(),
       actualizarLatencia(),
       actualizarTabla(),
+      actualizarIPsBloqueadas(),
+      actualizarHistorial(),
+      verificarAlertas(),
     ]);
     actualizarTimestamp();
   } catch (err) {
@@ -301,6 +505,8 @@ async function refreshAll() {
 
 document.addEventListener('DOMContentLoaded', function() {
   initCharts();
-  refreshAll();
-  setInterval(refreshAll, 100);
+  cargarOpciones().then(function() {
+    refreshAll();
+    setInterval(refreshAll, 100);
+  });
 });

@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Log Simulator — Simulador de Usuario</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0a0c0f;
+      --surface: #111318;
+      --card:    #161a22;
+      --border:  #1e2430;
+      --border2: #2a3244;
+      --accent:  #00d4aa;
+      --accent2: #0099ff;
+      --warn:    #ff6b35;
+      --danger:  #ff3b5c;
+      --success: #00d4aa;
+      --text:    #e2e8f0;
+      --muted:   #6b7a99;
+      --mono:    'JetBrains Mono', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+      min-height: 100vh;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 28px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-icon {
+      width: 30px; height: 30px;
+      background: var(--accent2);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: #000;
+    }
+    .logo-text { font-size: 14px; font-weight: 700; letter-spacing: 0.05em; }
+    .logo-sub  { font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+
+    .nav-link {
+      font-size: 11px; color: var(--muted);
+      text-decoration: none; padding: 6px 14px;
+      border: 1px solid var(--border); border-radius: 6px;
+      transition: all 0.2s;
+    }
+    .nav-link:hover { color: var(--text); border-color: var(--border2); }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 28px;
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 20px;
+    }
+
+    /* ── IP y estado ── */
+    .ip-bar {
+      grid-column: 1 / -1;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .ip-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; }
+
+    .ip-display {
+      font-size: 15px; font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.06em;
+    }
+
+    .ip-display.bloqueada { color: var(--danger); }
+
+    .status-badge {
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .status-activa   { background: rgba(0,212,170,0.15); color: var(--accent); }
+    .status-bloqueada { background: rgba(255,59,92,0.15); color: var(--danger); }
+
+    .ip-actions { margin-left: auto; display: flex; gap: 10px; }
+
+    .btn-cambiar-ip {
+      padding: 6px 14px;
+      background: transparent;
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-cambiar-ip:hover { color: var(--text); border-color: var(--accent2); }
+
+    /* ── Panel de acciones ── */
+    .acciones-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .acciones-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding: 16px;
+    }
+
+    .accion-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 14px;
+      cursor: pointer;
+      transition: all 0.18s;
+      text-align: left;
+      font-family: var(--mono);
+      color: var(--text);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .accion-btn:hover:not(:disabled) {
+      border-color: var(--btn-color, var(--accent));
+      background: rgba(0,0,0,0.3);
+      transform: translateY(-1px);
+    }
+
+    .accion-btn:active:not(:disabled) { transform: translateY(0); }
+
+    .accion-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .accion-icon {
+      font-size: 22px;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .accion-nombre {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--btn-color, var(--accent));
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    .accion-endpoint {
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .accion-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--btn-color, var(--accent));
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .accion-btn.flash::after { opacity: 0.06; }
+
+    /* ── Feed de respuestas ── */
+    .feed-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .feed-list {
+      flex: 1;
+      overflow-y: auto;
+      max-height: 520px;
+      padding: 10px 0;
+    }
+
+    .feed-item {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      animation: slideIn 0.25s ease;
+    }
+
+    .feed-item:last-child { border-bottom: none; }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(10px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .feed-item.bloqueado { background: rgba(255,59,92,0.05); }
+    .feed-item.error5xx  { background: rgba(255,107,53,0.05); }
+
+    .feed-row1 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 3px;
+    }
+
+    .feed-ts { font-size: 10px; color: var(--muted); min-width: 58px; }
+
+    .feed-metodo {
+      font-size: 10px; font-weight: 700;
+      padding: 1px 6px; border-radius: 3px;
+    }
+    .m-get    { background: rgba(0,153,255,0.15); color: var(--accent2); }
+    .m-post   { background: rgba(0,212,170,0.15); color: var(--accent);  }
+    .m-put    { background: rgba(255,107,53,0.15); color: var(--warn);   }
+    .m-delete { background: rgba(255,59,92,0.15);  color: var(--danger); }
+
+    .feed-endpoint { font-size: 11px; color: var(--text); }
+
+    .feed-codigo {
+      margin-left: auto;
+      font-size: 11px; font-weight: 700;
+    }
+    .c-2xx { color: var(--accent);  }
+    .c-4xx { color: var(--warn);    }
+    .c-5xx { color: var(--danger);  }
+    .c-block { color: var(--danger); }
+
+    .feed-row2 { font-size: 10px; color: var(--muted); }
+
+    .feed-empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 40px 20px;
+      font-size: 12px;
+    }
+
+    /* ── Bloqueo overlay ── */
+    .bloqueo-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(255,59,92,0.08);
+      border: 2px solid var(--danger);
+      z-index: 50;
+      pointer-events: none;
+      animation: parpadeo 1s ease-in-out infinite;
+    }
+
+    .bloqueo-overlay.visible { display: block; }
+
+    @keyframes parpadeo {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+
+    .bloqueo-banner {
+      display: none;
+      position: fixed;
+      top: 70px; left: 50%; transform: translateX(-50%);
+      background: var(--danger);
+      color: #fff;
+      padding: 12px 28px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      z-index: 100;
+      text-align: center;
+    }
+
+    .bloqueo-banner.visible { display: block; }
+  </style>
+</head>
+<body>
+
+<div class="bloqueo-overlay" id="overlay-bloqueo"></div>
+<div class="bloqueo-banner" id="banner-bloqueo">
+  ⛔ ACCESO DENEGADO — IP BLOQUEADA
+</div>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">US</div>
+    <div>
+      <div class="logo-text">SIMULADOR DE USUARIO</div>
+      <div class="logo-sub">Log Simulator · Cassandra</div>
+    </div>
+  </div>
+  <a href="/" class="nav-link">← Ver Dashboard</a>
+</header>
+
+<main>
+
+  <!-- Barra de IP -->
+  <div class="ip-bar">
+    <div>
+      <div class="ip-label">Tu IP simulada</div>
+      <div class="ip-display" id="ip-display">192.168.1.100</div>
+    </div>
+    <div id="status-badge" class="status-badge status-activa">Activa</div>
+    <div class="ip-actions">
+      <button class="btn-cambiar-ip" onclick="cambiarIP()">Cambiar IP</button>
+    </div>
+  </div>
+
+  <!-- Panel de acciones -->
+  <div class="acciones-panel">
+    <div class="panel-header">Acciones disponibles — cada click genera un log en Cassandra</div>
+    <div class="acciones-grid" id="acciones-grid">
+
+      <button class="accion-btn" style="--btn-color:#0099ff"
+        onclick="hacerAccion('/api/users','GET',this)">
+        <span class="accion-icon">👤</span>
+        <span class="accion-nombre">Ver Usuarios</span>
+        <span class="accion-endpoint">GET /api/users</span>
+      </button>
+
+      <button class="accion-btn" style="--btn-color:#00d4aa"
+        onclick="hacerAccion('/api/products','GET',this)">
+        <span class="accion-icon">📦</span>
+        <span class="accion-nombre">Ver Productos</span>
+        <span class="accion-endpoint">GET /api/products</span>
+      </button>
+
+      <button class="accion-btn" style="--btn-color:#00d4aa"
+        onclick="hacerAccion('/api/auth/login','POST',this)">
+        <span class="accion-icon">🔐</span>
+        <span class="accion-nombre">Iniciar Sesión</span>
+        <span class="accion-endpoint">POST /api/auth/login</span>
+      </button>
+
+      <button class="accion-btn" style="--btn-color:#ff6b35"
+        onclick="hacerAccion('/api/auth/logout','POST',this)">
+        <span class="accion-icon">🚪</span>
+        <span class="accion-nombre">Cerrar Sesión</span>
+        <span class="accion-endpoint">POST /api/auth/logout</span>
+      </button>
+
+      <button class="accion-btn" style="--btn-color:#0099ff"
+        onclick="hacerAccion('/api/search','GET',this)">
+        <span class="accion-icon">🔍</span>
+        <span class="accion-nombre">Buscar</span>
+        <span class="accion-endpoint">GET /api/search</span>
+      </button>
+
+      <button class="accion-btn" style="--btn-color:#9b59b6"
+        onclick="hacerAccion('/api/cart','POST',this)">
+        <span class="accion-icon">🛒</span>
+        <span class="accion-nombre">Agregar al Carrito</span>
+        <span class="accion-endpoint">POST /api/cart</span>
+      </button>
+
+      <button class="accion-btn" style="--btn-color:#f39c12"
+        onclick="hacerAccion('/api/orders','POST',this)">
+        <span class="accion-icon">📋</span>
+        <span class="accion-nombre">Crear Orden</span>
+        <span class="accion-endpoint">POST /api/orders</span>
+      </button>
+
+      <button class="accion-btn" style="--btn-color:#ff3b5c"
+        onclick="hacerAccion('/api/payments','POST',this)">
+        <span class="accion-icon">💳</span>
+        <span class="accion-nombre">Realizar Pago</span>
+        <span class="accion-endpoint">POST /api/payments</span>
+      </button>
+
+      <button class="accion-btn" style="--btn-color:#1abc9c"
+        onclick="hacerAccion('/api/reports','GET',this)">
+        <span class="accion-icon">📊</span>
+        <span class="accion-nombre">Ver Reportes</span>
+        <span class="accion-endpoint">GET /api/reports</span>
+      </button>
+
+      <button class="accion-btn" style="--btn-color:#6b7a99"
+        onclick="hacerAccion('/healthcheck','GET',this)">
+        <span class="accion-icon">💓</span>
+        <span class="accion-nombre">Health Check</span>
+        <span class="accion-endpoint">GET /healthcheck</span>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- Feed de respuestas -->
+  <div class="feed-panel">
+    <div class="panel-header">Feed de respuestas en tiempo real</div>
+    <div class="feed-list" id="feed-list">
+      <div class="feed-empty" id="feed-empty">
+        Haz click en una acción para generar logs...
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+'use strict';
+
+var ipActual   = '192.168.1.' + Math.floor(Math.random() * 200 + 10);
+var bloqueada  = false;
+var feedItems  = [];
+
+document.getElementById('ip-display').textContent = ipActual;
+
+function cambiarIP() {
+  ipActual  = '192.168.1.' + Math.floor(Math.random() * 200 + 10);
+  bloqueada = false;
+  document.getElementById('ip-display').textContent  = ipActual;
+  document.getElementById('ip-display').className    = 'ip-display';
+  document.getElementById('status-badge').textContent = 'Activa';
+  document.getElementById('status-badge').className  = 'status-badge status-activa';
+  document.getElementById('overlay-bloqueo').classList.remove('visible');
+  document.getElementById('banner-bloqueo').classList.remove('visible');
+  // Rehabilitar botones
+  document.querySelectorAll('.accion-btn').forEach(function(b) { b.disabled = false; });
+  agregarFeedItem(null, null, null, null, 'IP cambiada a ' + ipActual, 'info');
+}
+
+function hacerAccion(endpoint, metodo, btn) {
+  if (bloqueada) {
+    mostrarBloqueada();
+    return;
+  }
+
+  btn.classList.add('flash');
+  setTimeout(function() { btn.classList.remove('flash'); }, 300);
+
+  fetch('/accion', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ip: ipActual, endpoint: endpoint, metodo: metodo })
+  })
+  .then(function(res) {
+    if (res.status === 403) {
+      return res.json().then(function(d) {
+        marcarBloqueada();
+        agregarFeedItem(metodo, endpoint, null, null, 'IP BLOQUEADA', 'bloqueado');
+      });
+    }
+    return res.json().then(function(data) {
+      var tipo = data.codigo >= 500 ? 'error5xx' : 'ok';
+      agregarFeedItem(metodo, endpoint, data.codigo, data.latencia_ms, data.timestamp, tipo);
+    });
+  })
+  .catch(function(err) {
+    agregarFeedItem(metodo, endpoint, null, null, 'Error de red', 'error5xx');
+  });
+}
+
+function agregarFeedItem(metodo, endpoint, codigo, latencia, extra, tipo) {
+  var empty = document.getElementById('feed-empty');
+  if (empty) empty.remove();
+
+  var feed = document.getElementById('feed-list');
+  var div  = document.createElement('div');
+  div.className = 'feed-item ' + (tipo === 'bloqueado' ? 'bloqueado' : tipo === 'error5xx' ? 'error5xx' : '');
+
+  var ahora = new Date();
+  var ts    = [
+    String(ahora.getHours()).padStart(2,'0'),
+    String(ahora.getMinutes()).padStart(2,'0'),
+    String(ahora.getSeconds()).padStart(2,'0')
+  ].join(':');
+
+  if (tipo === 'bloqueado') {
+    div.innerHTML =
+      '<div class="feed-row1">' +
+        '<span class="feed-ts">' + ts + '</span>' +
+        '<span class="feed-endpoint" style="color:var(--danger)">⛔ ' + (endpoint || '') + '</span>' +
+        '<span class="feed-codigo c-block" style="margin-left:auto">403</span>' +
+      '</div>' +
+      '<div class="feed-row2">IP bloqueada — acceso denegado</div>';
+  } else if (tipo === 'info') {
+    div.innerHTML =
+      '<div class="feed-row1">' +
+        '<span class="feed-ts">' + ts + '</span>' +
+        '<span class="feed-endpoint" style="color:var(--accent)">' + extra + '</span>' +
+      '</div>';
+  } else {
+    var mClase   = 'm-' + (metodo || 'get').toLowerCase();
+    var cClase   = codigo >= 500 ? 'c-5xx' : codigo >= 400 ? 'c-4xx' : 'c-2xx';
+    div.innerHTML =
+      '<div class="feed-row1">' +
+        '<span class="feed-ts">' + ts + '</span>' +
+        '<span class="feed-metodo ' + mClase + '">' + metodo + '</span>' +
+        '<span class="feed-endpoint">' + endpoint + '</span>' +
+        '<span class="feed-codigo ' + cClase + '">' + codigo + '</span>' +
+      '</div>' +
+      '<div class="feed-row2">' + latencia + ' ms · ' + ipActual + '</div>';
+  }
+
+  feed.insertBefore(div, feed.firstChild);
+
+  // Limitar a 80 items
+  var items = feed.querySelectorAll('.feed-item');
+  if (items.length > 80) items[items.length - 1].remove();
+}
+
+function marcarBloqueada() {
+  bloqueada = true;
+  document.getElementById('ip-display').className    = 'ip-display bloqueada';
+  document.getElementById('status-badge').textContent = 'Bloqueada';
+  document.getElementById('status-badge').className  = 'status-badge status-bloqueada';
+  document.getElementById('overlay-bloqueo').classList.add('visible');
+  document.getElementById('banner-bloqueo').classList.add('visible');
+  document.querySelectorAll('.accion-btn').forEach(function(b) { b.disabled = true; });
+  setTimeout(function() {
+    document.getElementById('banner-bloqueo').classList.remove('visible');
+  }, 4000);
+}
+
+function mostrarBloqueada() {
+  document.getElementById('banner-bloqueo').classList.add('visible');
+  setTimeout(function() {
+    document.getElementById('banner-bloqueo').classList.remove('visible');
+  }, 2000);
+}
+</script>
+</body>
+</html>

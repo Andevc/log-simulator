@@ -81,6 +81,24 @@ def create_schema(session) -> None:
             PRIMARY KEY ((endpoint), ts, log_id)
         ) WITH CLUSTERING ORDER BY (ts DESC, log_id ASC)
         """,
+        """
+        CREATE TABLE IF NOT EXISTS ips_bloqueadas (
+            ip           TEXT PRIMARY KEY,
+            motivo       TEXT,
+            nivel        TEXT,
+            bloqueada_en TIMESTAMP,
+            intentos     INT
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS intentos_bloqueados (
+            ip        TEXT,
+            ts        TIMESTAMP,
+            endpoint  TEXT,
+            metodo    TEXT,
+            PRIMARY KEY ((ip), ts)
+        ) WITH CLUSTERING ORDER BY (ts DESC)
+        """,
     ]
 
     for stmt in ddl_statements:
@@ -99,8 +117,9 @@ def main() -> None:
     create_schema(session)
     print()
     print("Listo. Ahora puedes ejecutar:")
-    print("  python generator.py   <- genera 500k registros")
-    print("  python app.py         <- levanta el dashboard en http://localhost:5000")
+    print("  python generator.py       <- genera registros masivos")
+    print("  python app.py             <- levanta el dashboard en http://localhost:5000")
+    print("  python live_generator.py  <- genera logs en tiempo real (para la expo)")
 
 
 if __name__ == "__main__":
