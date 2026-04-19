@@ -1,0 +1,24 @@
+version: "3.8"
+
+services:
+  cassandra:
+    image: cassandra:4.1
+    container_name: cassandra_log
+    ports:
+      - "9042:9042"
+    environment:
+      CASSANDRA_CLUSTER_NAME: "LogCluster"
+      CASSANDRA_ENDPOINT_SNITCH: "SimpleSnitch"
+      HEAP_NEWSIZE: "128M"
+      MAX_HEAP_SIZE: "512M"
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'describe keyspaces' || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 15
+      start_period: 60s
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+
+volumes:
+  cassandra_data:

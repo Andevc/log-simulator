@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Log Simulator — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0c0f;
+      --surface:   #111318;
+      --card:      #161a22;
+      --border:    #1e2430;
+      --border2:   #2a3244;
+      --accent:    #00d4aa;
+      --accent2:   #0099ff;
+      --warn:      #ff6b35;
+      --danger:    #ff3b5c;
+      --text:      #e2e8f0;
+      --muted:     #6b7a99;
+      --dim:       #3a4560;
+      --green:     #00d4aa;
+      --mono:      'JetBrains Mono', 'Courier New', monospace;
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 28px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-icon {
+      width: 30px;
+      height: 30px;
+      background: var(--accent);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: #000;
+    }
+
+    .logo-text {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.05em;
+    }
+
+    .logo-sub {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+
+    .status-text {
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    #last-update {
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    /* ── Layout principal ── */
+    main {
+      padding: 24px 28px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* ── KPI Cards ── */
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+
+    .kpi {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .kpi:hover { border-color: var(--border2); }
+
+    .kpi::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 3px; height: 100%;
+      background: var(--accent-color, var(--accent));
+    }
+
+    .kpi-label {
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .kpi-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--accent-color, var(--accent));
+      line-height: 1;
+      margin-bottom: 4px;
+      transition: all 0.3s ease;
+    }
+
+    .kpi-suffix {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ── Grid de graficas ── */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .charts-bottom {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .card-badge {
+      font-size: 9px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: var(--border);
+      color: var(--muted);
+      letter-spacing: 0.06em;
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 220px;
+    }
+
+    .chart-wrap-sm {
+      position: relative;
+      height: 180px;
+    }
+
+    /* ── Tabla de logs ── */
+    .logs-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 14px;
+    }
+
+    .logs-card .card-header {
+      padding: 14px 20px;
+      margin: 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 8px 16px;
+      text-align: left;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+    }
+
+    tbody td {
+      padding: 7px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .badge {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .badge-get    { background: rgba(0,153,255,0.15); color: var(--accent2); }
+    .badge-post   { background: rgba(0,212,170,0.15); color: var(--accent);  }
+    .badge-put    { background: rgba(255,107,53,0.15); color: var(--warn);   }
+    .badge-delete { background: rgba(255,59,92,0.15);  color: var(--danger); }
+
+    .code-2xx { color: var(--accent);  }
+    .code-3xx { color: var(--accent2); }
+    .code-4xx { color: var(--warn);    }
+    .code-5xx { color: var(--danger);  }
+
+    /* ── Loading skeleton ── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--border) 25%, var(--border2) 50%, var(--border) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 4px;
+      height: 1em;
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 16px;
+      font-size: 10px;
+      color: var(--dim);
+      border-top: 1px solid var(--border);
+      letter-spacing: 0.08em;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .kpis         { grid-template-columns: repeat(2, 1fr); }
+      .charts-grid  { grid-template-columns: 1fr; }
+      .charts-bottom{ grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">LS</div>
+    <div>
+      <div class="logo-text">LOG SIMULATOR</div>
+      <div class="logo-sub">Apache Cassandra · Big Data Dashboard</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="status-dot"></div>
+    <span class="status-text">Live</span>
+    <span id="last-update">—</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- KPIs -->
+  <div class="kpis">
+    <div class="kpi" style="--accent-color: var(--accent)">
+      <div class="kpi-label">Total Requests</div>
+      <div class="kpi-value" id="kpi-total">—</div>
+      <div class="kpi-suffix">últimas 24h</div>
+    </div>
+    <div class="kpi" style="--accent-color: var(--danger)">
+      <div class="kpi-label">Errores 5xx</div>
+      <div class="kpi-value" id="kpi-errores">—</div>
+      <div class="kpi-suffix">HTTP 500/503</div>
+    </div>
+    <div class="kpi" style="--accent-color: var(--warn)">
+      <div class="kpi-label">Tasa de Error</div>
+      <div class="kpi-value" id="kpi-tasa">—</div>
+      <div class="kpi-suffix">% del total</div>
+    </div>
+    <div class="kpi" style="--accent-color: var(--accent2)">
+      <div class="kpi-label">Latencia Media</div>
+      <div class="kpi-value" id="kpi-latencia">—</div>
+      <div class="kpi-suffix">milisegundos</div>
+    </div>
+  </div>
+
+  <!-- Graficas principales -->
+  <div class="charts-grid">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Tráfico por Hora</span>
+        <span class="card-badge">24h · requests</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chart-trafico"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Top Endpoints</span>
+        <span class="card-badge">distribución</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chart-endpoints"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Graficas secundarias -->
+  <div class="charts-bottom">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Errores 5xx / Hora</span>
+        <span class="card-badge">barras</span>
+      </div>
+      <div class="chart-wrap-sm">
+        <canvas id="chart-errores"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Latencia por Endpoint</span>
+        <span class="card-badge">ms · promedio</span>
+      </div>
+      <div class="chart-wrap-sm">
+        <canvas id="chart-latencia"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla de logs recientes -->
+  <div class="logs-card">
+    <div class="card-header">
+      <span class="card-title">Logs Recientes</span>
+      <span class="card-badge">últimas entradas</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Hora</th>
+            <th>IP Cliente</th>
+            <th>Método</th>
+            <th>Endpoint</th>
+            <th>Código HTTP</th>
+            <th>Latencia (ms)</th>
+          </tr>
+        </thead>
+        <tbody id="tabla-logs">
+          <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">Cargando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  LOG SIMULATOR · Universidad Mayor de San Andrés · Bases de Datos 3 · Apache Cassandra 4.1
+</footer>
+
+<script src="dashboard.js"></script>
+</body>
+</html>

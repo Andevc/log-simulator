@@ -1,0 +1,7 @@
+# Compatible con Python 3.8, 3.9, 3.10, 3.11, 3.12
+# Instalar con: pip install -r requirements.txt
+
+cassandra-driver==3.29.1
+Flask==2.3.3
+Faker==19.13.0
+Werkzeug==2.3.7
