@@ -110,6 +110,44 @@
       margin: 0 auto;
     }
 
+    .dashboard-section {
+      margin-bottom: 18px;
+      padding: 14px;
+      background: rgba(17,19,24,0.45);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      padding: 4px 2px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      color: var(--text);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .section-sub {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 2px;
+      letter-spacing: 0.03em;
+    }
+
+    .security-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      align-items: stretch;
+    }
+
     /* ── KPI Cards ── */
     .kpis {
       display: grid;
@@ -308,7 +346,17 @@
     .alerta-valor  { font-weight: 700; margin-left: auto; font-size: 14px; }
 
     /* ── Panel IPs bloqueadas ── */
-    .ips-panel { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 14px; }
+    .ips-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 14px;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 320px;
+    }
     .ips-form  { display: flex; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
 
     .ips-input {
@@ -381,6 +429,7 @@
       .kpis         { grid-template-columns: repeat(2, 1fr); }
       .charts-grid  { grid-template-columns: 1fr; }
       .charts-bottom{ grid-template-columns: 1fr; }
+      .security-grid { grid-template-columns: 1fr; }
     }
 
 
@@ -412,7 +461,13 @@
 .btn-guardar:hover { background: rgba(0,153,255,0.25); }
 
 /* ── Historial de intentos ── */
-.historial-lista { padding: 4px 0; max-height: 200px; overflow-y: auto; }
+.historial-lista {
+  padding: 4px 0;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+}
 .historial-item  {
   display: flex; gap: 10px; align-items: center;
   padding: 6px 16px; border-bottom: 1px solid var(--border);

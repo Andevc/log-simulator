@@ -33,141 +33,155 @@
 
   <main>
 
-    <!-- KPIs -->
-    <div class="kpis">
-      <div class="kpi" style="--accent-color: var(--accent)">
-        <div class="kpi-label">Total Requests</div>
-        <div class="kpi-value" id="kpi-total">—</div>
-        <div class="kpi-suffix">últimas 24h</div>
+    <section class="dashboard-section">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Registros y Métricas</div>
+          <div class="section-sub">Visión operativa de tráfico, errores, latencia y logs recientes.</div>
+        </div>
       </div>
-      <div class="kpi" style="--accent-color: var(--danger)">
-        <div class="kpi-label">Errores 5xx</div>
-        <div class="kpi-value" id="kpi-errores">—</div>
-        <div class="kpi-suffix">HTTP 500/503</div>
-      </div>
-      <div class="kpi" style="--accent-color: var(--warn)">
-        <div class="kpi-label">Tasa de Error</div>
-        <div class="kpi-value" id="kpi-tasa">—</div>
-        <div class="kpi-suffix">% del total</div>
-      </div>
-      <div class="kpi" style="--accent-color: var(--accent2)">
-        <div class="kpi-label">Latencia Media</div>
-        <div class="kpi-value" id="kpi-latencia">—</div>
-        <div class="kpi-suffix">milisegundos</div>
-      </div>
-    </div>
 
-    <!-- Graficas principales -->
-    <div class="charts-grid">
-      <div class="card">
+      <div class="kpis">
+        <div class="kpi" style="--accent-color: var(--accent)">
+          <div class="kpi-label">Total Requests</div>
+          <div class="kpi-value" id="kpi-total">—</div>
+          <div class="kpi-suffix">últimas 24h</div>
+        </div>
+        <div class="kpi" style="--accent-color: var(--danger)">
+          <div class="kpi-label">Errores 5xx</div>
+          <div class="kpi-value" id="kpi-errores">—</div>
+          <div class="kpi-suffix">HTTP 500/503</div>
+        </div>
+        <div class="kpi" style="--accent-color: var(--warn)">
+          <div class="kpi-label">Tasa de Error</div>
+          <div class="kpi-value" id="kpi-tasa">—</div>
+          <div class="kpi-suffix">% del total</div>
+        </div>
+        <div class="kpi" style="--accent-color: var(--accent2)">
+          <div class="kpi-label">Latencia Media</div>
+          <div class="kpi-value" id="kpi-latencia">—</div>
+          <div class="kpi-suffix">milisegundos</div>
+        </div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Tráfico por Hora</span>
+            <span class="card-badge">24h · requests</span>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="chart-trafico"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Top Endpoints</span>
+            <span class="card-badge">distribución</span>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="chart-endpoints"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="charts-bottom">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Errores 5xx / Hora</span>
+            <span class="card-badge">barras</span>
+          </div>
+          <div class="chart-wrap-sm">
+            <canvas id="chart-errores"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Latencia por Endpoint</span>
+            <span class="card-badge">ms · promedio</span>
+          </div>
+          <div class="chart-wrap-sm">
+            <canvas id="chart-latencia"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="alertas-zona">
+        <div class="alerta-banner alerta-danger" id="alerta-tasa">
+          <span class="alerta-titulo">⚠ ALERTA — Tasa de error elevada</span>
+          <span style="color:var(--muted);font-size:11px">supera el umbral del 10%</span>
+          <span class="alerta-valor" id="val-tasa">—</span>
+        </div>
+        <div class="alerta-banner alerta-warn" id="alerta-latencia">
+          <span class="alerta-titulo">⚠ ALERTA — Latencia alta</span>
+          <span style="color:var(--muted);font-size:11px">supera los 800ms promedio</span>
+          <span class="alerta-valor" id="val-lat">—</span>
+        </div>
+      </div>
+
+      <div class="logs-card">
         <div class="card-header">
-          <span class="card-title">Tráfico por Hora</span>
-          <span class="card-badge">24h · requests</span>
+          <span class="card-title">Logs Recientes</span>
+          <span class="card-badge">últimas entradas</span>
         </div>
-        <div class="chart-wrap">
-          <canvas id="chart-trafico"></canvas>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Hora</th>
+                <th>IP Cliente</th>
+                <th>Método</th>
+                <th>Endpoint</th>
+                <th>Código HTTP</th>
+                <th>Latencia (ms)</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-logs">
+              <tr>
+                <td colspan="6" style="text-align:center;color:var(--muted);padding:20px">Cargando...</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">Top Endpoints</span>
-          <span class="card-badge">distribución</span>
-        </div>
-        <div class="chart-wrap">
-          <canvas id="chart-endpoints"></canvas>
-        </div>
-      </div>
-    </div>
+    </section>
 
-    <!-- Graficas secundarias -->
-    <div class="charts-bottom">
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">Errores 5xx / Hora</span>
-          <span class="card-badge">barras</span>
-        </div>
-        <div class="chart-wrap-sm">
-          <canvas id="chart-errores"></canvas>
+    <section class="dashboard-section">
+      <div class="section-head">
+        <div>
+          <div class="section-title">IPs Bloqueadas e Historial</div>
+          <div class="section-sub">Gestión de firewall y seguimiento de intentos de acceso denegados.</div>
         </div>
       </div>
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">Latencia por Endpoint</span>
-          <span class="card-badge">ms · promedio</span>
-        </div>
-        <div class="chart-wrap-sm">
-          <canvas id="chart-latencia"></canvas>
-        </div>
-      </div>
-    </div>
 
-    <!-- Alertas automaticas -->
-    <div class="alertas-zona">
-      <div class="alerta-banner alerta-danger" id="alerta-tasa">
-        <span class="alerta-titulo">⚠ ALERTA — Tasa de error elevada</span>
-        <span style="color:var(--muted);font-size:11px">supera el umbral del 10%</span>
-        <span class="alerta-valor" id="val-tasa">—</span>
-      </div>
-      <div class="alerta-banner alerta-warn" id="alerta-latencia">
-        <span class="alerta-titulo">⚠ ALERTA — Latencia alta</span>
-        <span style="color:var(--muted);font-size:11px">supera los 800ms promedio</span>
-        <span class="alerta-valor" id="val-lat">—</span>
-      </div>
-    </div>
+      <div class="security-grid">
+        <div class="ips-panel">
+          <div class="card-header" style="padding:12px 16px;margin:0;border-bottom:1px solid var(--border)">
+            <span class="card-title">Firewall — IPs Bloqueadas</span>
+            <span class="card-badge">CRUD · Cassandra</span>
+          </div>
+          <div class="ips-form">
+            <input class="ips-input wide" id="input-ip-bloquear" type="text" placeholder="IP a bloquear  ej: 192.168.1.55" />
+            <select class="ips-input" id="select-motivo-nuevo"></select>
+            <select class="ips-input" id="select-nivel-nuevo"></select>
+            <button class="btn-bloquear" onclick="bloquearIPManual()">⛔ Bloquear IP</button>
+          </div>
+          <div class="lista-ips" id="lista-ips">
+            <div class="ips-empty">Sin IPs bloqueadas</div>
+          </div>
+        </div>
 
-    <!-- Panel IPs bloqueadas -->
-    <div class="ips-panel">
-      <div class="card-header" style="padding:12px 16px;margin:0;border-bottom:1px solid var(--border)">
-        <span class="card-title">Firewall — IPs Bloqueadas</span>
-        <span class="card-badge">CRUD · Cassandra</span>
+        <div class="ips-panel">
+          <div class="card-header" style="padding:12px 16px;margin:0;border-bottom:1px solid var(--border)">
+            <span class="card-title">Historial — Intentos Bloqueados</span>
+            <span class="card-badge">tiempo real</span>
+          </div>
+          <div class="historial-lista" id="historial-lista">
+            <div class="ips-empty">Sin intentos registrados</div>
+          </div>
+        </div>
       </div>
-      <div class="ips-form">
-        <input class="ips-input wide" id="input-ip-bloquear" type="text"
-          placeholder="IP a bloquear  ej: 192.168.1.55" />
-        <input class="ips-input" id="input-motivo" type="text" placeholder="Motivo (opcional)" style="width:180px" />
-        <button class="btn-bloquear" onclick="bloquearIPManual()">⛔ Bloquear IP</button>
-      </div>
-      <div class="lista-ips" id="lista-ips">
-        <div class="ips-empty">Sin IPs bloqueadas</div>
-      </div>
-    </div>
-    <!-- Historial de intentos bloqueados -->
-    <div class="ips-panel">
-      <div class="card-header" style="padding:12px 16px;margin:0;border-bottom:1px solid var(--border)">
-        <span class="card-title">Historial — Intentos Bloqueados</span>
-        <span class="card-badge">tiempo real</span>
-      </div>
-      <div class="historial-lista" id="historial-lista">
-        <div class="ips-empty">Sin intentos registrados</div>
-      </div>
-    </div>
-
-    <!-- Tabla de logs recientes -->
-    <div class="logs-card">
-      <div class="card-header">
-        <span class="card-title">Logs Recientes</span>
-        <span class="card-badge">últimas entradas</span>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Hora</th>
-              <th>IP Cliente</th>
-              <th>Método</th>
-              <th>Endpoint</th>
-              <th>Código HTTP</th>
-              <th>Latencia (ms)</th>
-            </tr>
-          </thead>
-          <tbody id="tabla-logs">
-            <tr>
-              <td colspan="6" style="text-align:center;color:var(--muted);padding:20px">Cargando...</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+    </section>
 
   </main>
 

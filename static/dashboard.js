@@ -1,6 +1,6 @@
 /**
  * dashboard.js
- * Consulta los endpoints REST de Flask cada 3 segundos
+ * Consulta los endpoints REST de Flask cada 1 segundo
  * y actualiza graficas, KPIs, IPs bloqueadas e historial.
  */
 
@@ -36,6 +36,10 @@ Chart.defaults.borderColor = C.border;
 var charts  = {};
 var MOTIVOS = [];
 var NIVELES = [];
+var isRefreshing = false;
+var refreshTick = 0;
+var FAST_REFRESH_MS = 1000;
+var CHARTS_EVERY_TICKS = 5;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -217,6 +221,7 @@ async function actualizarKPIs() {
   animateValue(document.getElementById('kpi-errores'),  fmt(data.errores));
   animateValue(document.getElementById('kpi-tasa'),     data.tasa_error + '%');
   animateValue(document.getElementById('kpi-latencia'), data.latencia + 'ms');
+  return data;
 }
 
 // ─── Graficas ─────────────────────────────────────────────────────────────────
@@ -456,13 +461,12 @@ async function actualizarHistorial() {
 
 // ─── Alertas automaticas ──────────────────────────────────────────────────────
 
-async function verificarAlertas() {
-  var kpis       = await fetchJSON('/stats/kpis');
+function verificarAlertas(kpis) {
   var bannerTasa = document.getElementById('alerta-tasa');
   var bannerLat  = document.getElementById('alerta-latencia');
   var valTasa    = document.getElementById('val-tasa');
   var valLat     = document.getElementById('val-lat');
-  if (!bannerTasa || !bannerLat) return;
+  if (!bannerTasa || !bannerLat || !kpis) return;
 
   if (kpis.tasa_error > 10) {
     bannerTasa.style.display = 'flex';
@@ -479,25 +483,49 @@ async function verificarAlertas() {
   }
 }
 
+async function actualizarKPIsYAlertas() {
+  var kpis = await actualizarKPIs();
+  verificarAlertas(kpis);
+}
+
 // ─── Ciclo de refresco ────────────────────────────────────────────────────────
 
 async function refreshAll() {
+  if (isRefreshing) return;
+  isRefreshing = true;
+  refreshTick += 1;
+
+  var tareas = [
+    actualizarKPIsYAlertas,
+    actualizarTabla,
+    actualizarIPsBloqueadas,
+    actualizarHistorial,
+  ];
+
+  if (refreshTick % CHARTS_EVERY_TICKS === 0) {
+    tareas.push(
+      actualizarTrafico,
+      actualizarEndpoints,
+      actualizarErrores,
+      actualizarLatencia
+    );
+  }
+
   try {
-    await Promise.all([
-      actualizarKPIs(),
-      actualizarTrafico(),
-      actualizarEndpoints(),
-      actualizarErrores(),
-      actualizarLatencia(),
-      actualizarTabla(),
-      actualizarIPsBloqueadas(),
-      actualizarHistorial(),
-      verificarAlertas(),
-    ]);
+    var resultados = await Promise.allSettled(
+      tareas.map(function(tarea) { return tarea(); })
+    );
+
+    var huboError = resultados.some(function(r) { return r.status === 'rejected'; });
     actualizarTimestamp();
+    if (huboError) {
+      document.getElementById('last-update').textContent += ' · parcial';
+    }
   } catch (err) {
     console.error('Error al obtener datos:', err);
     document.getElementById('last-update').textContent = 'error de conexion';
+  } finally {
+    isRefreshing = false;
   }
 }
 
@@ -506,7 +534,9 @@ async function refreshAll() {
 document.addEventListener('DOMContentLoaded', function() {
   initCharts();
   cargarOpciones().then(function() {
+    // Primera carga con graficas para evitar esperar 5 ciclos.
+    refreshTick = CHARTS_EVERY_TICKS - 1;
     refreshAll();
-    setInterval(refreshAll, 1000);
+    setInterval(refreshAll, FAST_REFRESH_MS);
   });
 });

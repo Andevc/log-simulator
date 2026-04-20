@@ -344,13 +344,20 @@ def listar_ips():
     rows = session.execute("SELECT ip, motivo, nivel, bloqueada_en, intentos FROM ips_bloqueadas")
     resultado = []
     for row in rows:
+        ts = row.bloqueada_en.timestamp() if row.bloqueada_en else -1
         resultado.append({
             "ip":          row.ip,
             "motivo":      row.motivo or "Actividad sospechosa",
             "nivel":       row.nivel  or "BAJO",
             "intentos":    row.intentos or 0,
             "bloqueada_en": row.bloqueada_en.strftime("%H:%M:%S %d/%m/%Y") if row.bloqueada_en else "",
+            "_ts": ts,
         })
+
+    resultado.sort(key=lambda x: x["_ts"], reverse=True)
+    for item in resultado:
+        item.pop("_ts", None)
+
     return jsonify(resultado)
 
 
