@@ -1,600 +1,181 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Log Simulator — Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap"
+    rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg:        #0a0c0f;
-      --surface:   #111318;
-      --card:      #161a22;
-      --border:    #1e2430;
-      --border2:   #2a3244;
-      --accent:    #00d4aa;
-      --accent2:   #0099ff;
-      --warn:      #ff6b35;
-      --danger:    #ff3b5c;
-      --text:      #e2e8f0;
-      --muted:     #6b7a99;
-      --dim:       #3a4560;
-      --green:     #00d4aa;
-      --mono:      'JetBrains Mono', 'Courier New', monospace;
-    }
-
-    html, body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--mono);
-      font-size: 13px;
-      min-height: 100vh;
-      line-height: 1.5;
-    }
-
-    /* ── Header ── */
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 28px;
-      border-bottom: 1px solid var(--border);
-      background: var(--surface);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .logo-icon {
-      width: 30px;
-      height: 30px;
-      background: var(--accent);
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      font-weight: 700;
-      color: #000;
-    }
-
-    .logo-text {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--text);
-      letter-spacing: 0.05em;
-    }
-
-    .logo-sub {
-      font-size: 10px;
-      color: var(--muted);
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-    }
-
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 18px;
-    }
-
-    .status-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--accent);
-      animation: pulse 2s ease-in-out infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0.3; }
-    }
-
-    .status-text {
-      font-size: 11px;
-      color: var(--accent);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    #last-update {
-      font-size: 10px;
-      color: var(--muted);
-    }
-
-    /* ── Layout principal ── */
-    main {
-      padding: 24px 28px;
-      max-width: 1400px;
-      margin: 0 auto;
-    }
-
-    /* ── KPI Cards ── */
-    .kpis {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 14px;
-      margin-bottom: 22px;
-    }
-
-    .kpi {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 18px 20px;
-      position: relative;
-      overflow: hidden;
-      transition: border-color 0.2s;
-    }
-
-    .kpi:hover { border-color: var(--border2); }
-
-    .kpi::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0;
-      width: 3px; height: 100%;
-      background: var(--accent-color, var(--accent));
-    }
-
-    .kpi-label {
-      font-size: 9px;
-      color: var(--muted);
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      margin-bottom: 8px;
-    }
-
-    .kpi-value {
-      font-size: 28px;
-      font-weight: 700;
-      color: var(--accent-color, var(--accent));
-      line-height: 1;
-      margin-bottom: 4px;
-      transition: all 0.3s ease;
-    }
-
-    .kpi-suffix {
-      font-size: 11px;
-      color: var(--muted);
-    }
-
-    /* ── Grid de graficas ── */
-    .charts-grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 14px;
-      margin-bottom: 14px;
-    }
-
-    .charts-bottom {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-      margin-bottom: 14px;
-    }
-
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 18px 20px;
-    }
-
-    .card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 16px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .card-title {
-      font-size: 10px;
-      font-weight: 700;
-      color: var(--muted);
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-    }
-
-    .card-badge {
-      font-size: 9px;
-      padding: 2px 8px;
-      border-radius: 4px;
-      background: var(--border);
-      color: var(--muted);
-      letter-spacing: 0.06em;
-    }
-
-    .chart-wrap {
-      position: relative;
-      height: 220px;
-    }
-
-    .chart-wrap-sm {
-      position: relative;
-      height: 180px;
-    }
-
-    /* ── Tabla de logs ── */
-    .logs-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      overflow: hidden;
-      margin-bottom: 14px;
-    }
-
-    .logs-card .card-header {
-      padding: 14px 20px;
-      margin: 0;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .table-wrap {
-      overflow-x: auto;
-      max-height: 300px;
-      overflow-y: auto;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    thead th {
-      font-size: 9px;
-      color: var(--muted);
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      padding: 8px 16px;
-      text-align: left;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      position: sticky;
-      top: 0;
-    }
-
-    tbody td {
-      padding: 7px 16px;
-      border-bottom: 1px solid var(--border);
-      font-size: 11px;
-      color: var(--text);
-      white-space: nowrap;
-    }
-
-    tbody tr:last-child td { border-bottom: none; }
-    tbody tr:hover td { background: rgba(255,255,255,0.02); }
-
-    .badge {
-      display: inline-block;
-      padding: 1px 7px;
-      border-radius: 4px;
-      font-size: 10px;
-      font-weight: 700;
-    }
-
-    .badge-get    { background: rgba(0,153,255,0.15); color: var(--accent2); }
-    .badge-post   { background: rgba(0,212,170,0.15); color: var(--accent);  }
-    .badge-put    { background: rgba(255,107,53,0.15); color: var(--warn);   }
-    .badge-delete { background: rgba(255,59,92,0.15);  color: var(--danger); }
-
-    .code-2xx { color: var(--accent);  }
-    .code-3xx { color: var(--accent2); }
-    .code-4xx { color: var(--warn);    }
-    .code-5xx { color: var(--danger);  }
-
-    /* ── Alertas ── */
-    .alertas-zona { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
-
-    .alerta-banner {
-      display: none;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 18px;
-      border-radius: 8px;
-      border-left: 3px solid;
-      font-size: 12px;
-      animation: pulseAlert 2s ease-in-out infinite;
-    }
-
-    @keyframes pulseAlert { 0%,100%{opacity:1} 50%{opacity:.7} }
-
-    .alerta-danger { background: rgba(255,59,92,0.1); border-color: var(--danger); color: var(--danger); }
-    .alerta-warn   { background: rgba(255,107,53,0.1); border-color: var(--warn); color: var(--warn); }
-    .alerta-titulo { font-weight: 700; letter-spacing: 0.06em; }
-    .alerta-valor  { font-weight: 700; margin-left: auto; font-size: 14px; }
-
-    /* ── Panel IPs bloqueadas ── */
-    .ips-panel { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 14px; }
-    .ips-form  { display: flex; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
-
-    .ips-input {
-      background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
-      padding: 7px 12px; color: var(--text); font-family: var(--mono); font-size: 12px;
-      outline: none; transition: border-color 0.2s;
-    }
-    .ips-input:focus { border-color: var(--danger); }
-    .ips-input.wide  { flex: 1; min-width: 120px; }
-
-    .btn-bloquear {
-      padding: 7px 16px; background: rgba(255,59,92,0.15); border: 1px solid var(--danger);
-      border-radius: 6px; color: var(--danger); font-family: var(--mono); font-size: 11px;
-      font-weight: 700; cursor: pointer; letter-spacing: 0.06em; transition: all 0.2s; white-space: nowrap;
-    }
-    .btn-bloquear:hover { background: rgba(255,59,92,0.25); }
-
-    .lista-ips { padding: 4px 0; min-height: 44px; }
-
-    .ip-row {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 8px 16px; border-bottom: 1px solid var(--border);
-    }
-    .ip-row:last-child { border-bottom: none; }
-    .ip-addr { font-size: 12px; font-weight: 700; color: var(--danger); margin-bottom: 2px; }
-    .ip-meta { font-size: 10px; color: var(--muted); }
-
-    .btn-desbloquear {
-      padding: 4px 12px; background: transparent; border: 1px solid var(--border2);
-      border-radius: 5px; color: var(--muted); font-family: var(--mono); font-size: 10px;
-      cursor: pointer; transition: all 0.2s;
-    }
-    .btn-desbloquear:hover { color: var(--accent); border-color: var(--accent); }
-    .ips-empty { text-align: center; color: var(--muted); font-size: 11px; padding: 14px; }
-
-    .simulador-link {
-      display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px;
-      background: rgba(0,153,255,0.1); border: 1px solid rgba(0,153,255,0.3);
-      border-radius: 7px; color: var(--accent2); font-size: 11px; font-weight: 700;
-      text-decoration: none; letter-spacing: 0.05em; transition: all 0.2s;
-    }
-    .simulador-link:hover { background: rgba(0,153,255,0.2); }
-
-    /* ── Loading skeleton ── */
-    .skeleton {
-      background: linear-gradient(90deg, var(--border) 25%, var(--border2) 50%, var(--border) 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.4s infinite;
-      border-radius: 4px;
-      height: 1em;
-    }
-
-    @keyframes shimmer {
-      0%   { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
-    }
-
-    /* ── Footer ── */
-    footer {
-      text-align: center;
-      padding: 16px;
-      font-size: 10px;
-      color: var(--dim);
-      border-top: 1px solid var(--border);
-      letter-spacing: 0.08em;
-    }
-
-    /* ── Responsive ── */
-    @media (max-width: 900px) {
-      .kpis         { grid-template-columns: repeat(2, 1fr); }
-      .charts-grid  { grid-template-columns: 1fr; }
-      .charts-bottom{ grid-template-columns: 1fr; }
-    }
-
-
-    /* ── Edición inline de IPs ── */
-.ip-row        { flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px 16px; }
-.ip-info       { width: 100%; display: flex; align-items: center; gap: 10px; }
-.ip-editar     { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; width: 100%; }
-
-.nivel-badge   { font-size: 9px; font-weight: 700; padding: 1px 7px; border-radius: 4px; letter-spacing: 0.08em; }
-.nivel-bajo    { background: rgba(0,212,170,0.15);  color: var(--accent);  }
-.nivel-medio   { background: rgba(255,107,53,0.15); color: var(--warn);    }
-.nivel-alto    { background: rgba(255,59,92,0.2);   color: var(--danger);  animation: pulseAlert 1.5s ease-in-out infinite; }
-
-.intentos-badge { font-size: 9px; color: var(--muted); background: var(--border); padding: 1px 7px; border-radius: 4px; }
-
-.ip-select {
-  background: var(--surface); border: 1px solid var(--border2);
-  border-radius: 5px; color: var(--text); font-family: var(--mono);
-  font-size: 11px; padding: 5px 8px; cursor: pointer; outline: none;
-}
-.ip-select:focus { border-color: var(--accent2); }
-
-.btn-guardar {
-  padding: 5px 12px; background: rgba(0,153,255,0.15);
-  border: 1px solid var(--accent2); border-radius: 5px;
-  color: var(--accent2); font-family: var(--mono); font-size: 10px;
-  font-weight: 700; cursor: pointer; transition: all 0.2s;
-}
-.btn-guardar:hover { background: rgba(0,153,255,0.25); }
-
-/* ── Historial de intentos ── */
-.historial-lista { padding: 4px 0; max-height: 200px; overflow-y: auto; }
-.historial-item  {
-  display: flex; gap: 10px; align-items: center;
-  padding: 6px 16px; border-bottom: 1px solid var(--border);
-  font-size: 11px;
-}
-.historial-item:last-child { border-bottom: none; }
-.hist-ts       { color: var(--muted); min-width: 58px; font-size: 10px; }
-.hist-ip       { color: var(--danger); font-weight: 700; min-width: 110px; }
-.hist-endpoint { color: var(--text); flex: 1; }
-  </style>
+  <link rel="stylesheet" href="/static/style.css">
 </head>
+
 <body>
 
-<header>
-  <div class="logo">
-    <div class="logo-icon">LS</div>
-    <div>
-      <div class="logo-text">LOG SIMULATOR</div>
-      <div class="logo-sub">Apache Cassandra · Big Data Dashboard</div>
+  <header>
+    <div class="logo">
+      <div class="logo-icon">LS</div>
+      <div>
+        <div class="logo-text">LOG SIMULATOR</div>
+        <div class="logo-sub">Apache Cassandra · Big Data Dashboard</div>
+      </div>
     </div>
-  </div>
-  <div class="header-right">
-    <a href="/usuario" class="simulador-link">Simulador de Usuario →</a>
-    <div class="status-dot"></div>
-    <span class="status-text">Live</span>
-    <span id="last-update">—</span>
-  </div>
-</header>
+    <div class="header-right">
+      <a href="/usuario" class="simulador-link">Simulador de Usuario →</a>
+      <div class="status-dot"></div>
+      <span class="status-text">Live</span>
+      <span id="last-update">—</span>
+    </div>
+  </header>
 
-<main>
+  <main>
 
-  <!-- KPIs -->
-  <div class="kpis">
-    <div class="kpi" style="--accent-color: var(--accent)">
-      <div class="kpi-label">Total Requests</div>
-      <div class="kpi-value" id="kpi-total">—</div>
-      <div class="kpi-suffix">últimas 24h</div>
+    <!-- KPIs -->
+    <div class="kpis">
+      <div class="kpi" style="--accent-color: var(--accent)">
+        <div class="kpi-label">Total Requests</div>
+        <div class="kpi-value" id="kpi-total">—</div>
+        <div class="kpi-suffix">últimas 24h</div>
+      </div>
+      <div class="kpi" style="--accent-color: var(--danger)">
+        <div class="kpi-label">Errores 5xx</div>
+        <div class="kpi-value" id="kpi-errores">—</div>
+        <div class="kpi-suffix">HTTP 500/503</div>
+      </div>
+      <div class="kpi" style="--accent-color: var(--warn)">
+        <div class="kpi-label">Tasa de Error</div>
+        <div class="kpi-value" id="kpi-tasa">—</div>
+        <div class="kpi-suffix">% del total</div>
+      </div>
+      <div class="kpi" style="--accent-color: var(--accent2)">
+        <div class="kpi-label">Latencia Media</div>
+        <div class="kpi-value" id="kpi-latencia">—</div>
+        <div class="kpi-suffix">milisegundos</div>
+      </div>
     </div>
-    <div class="kpi" style="--accent-color: var(--danger)">
-      <div class="kpi-label">Errores 5xx</div>
-      <div class="kpi-value" id="kpi-errores">—</div>
-      <div class="kpi-suffix">HTTP 500/503</div>
-    </div>
-    <div class="kpi" style="--accent-color: var(--warn)">
-      <div class="kpi-label">Tasa de Error</div>
-      <div class="kpi-value" id="kpi-tasa">—</div>
-      <div class="kpi-suffix">% del total</div>
-    </div>
-    <div class="kpi" style="--accent-color: var(--accent2)">
-      <div class="kpi-label">Latencia Media</div>
-      <div class="kpi-value" id="kpi-latencia">—</div>
-      <div class="kpi-suffix">milisegundos</div>
-    </div>
-  </div>
 
-  <!-- Graficas principales -->
-  <div class="charts-grid">
-    <div class="card">
+    <!-- Graficas principales -->
+    <div class="charts-grid">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Tráfico por Hora</span>
+          <span class="card-badge">24h · requests</span>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="chart-trafico"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Top Endpoints</span>
+          <span class="card-badge">distribución</span>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="chart-endpoints"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Graficas secundarias -->
+    <div class="charts-bottom">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Errores 5xx / Hora</span>
+          <span class="card-badge">barras</span>
+        </div>
+        <div class="chart-wrap-sm">
+          <canvas id="chart-errores"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Latencia por Endpoint</span>
+          <span class="card-badge">ms · promedio</span>
+        </div>
+        <div class="chart-wrap-sm">
+          <canvas id="chart-latencia"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alertas automaticas -->
+    <div class="alertas-zona">
+      <div class="alerta-banner alerta-danger" id="alerta-tasa">
+        <span class="alerta-titulo">⚠ ALERTA — Tasa de error elevada</span>
+        <span style="color:var(--muted);font-size:11px">supera el umbral del 10%</span>
+        <span class="alerta-valor" id="val-tasa">—</span>
+      </div>
+      <div class="alerta-banner alerta-warn" id="alerta-latencia">
+        <span class="alerta-titulo">⚠ ALERTA — Latencia alta</span>
+        <span style="color:var(--muted);font-size:11px">supera los 800ms promedio</span>
+        <span class="alerta-valor" id="val-lat">—</span>
+      </div>
+    </div>
+
+    <!-- Panel IPs bloqueadas -->
+    <div class="ips-panel">
+      <div class="card-header" style="padding:12px 16px;margin:0;border-bottom:1px solid var(--border)">
+        <span class="card-title">Firewall — IPs Bloqueadas</span>
+        <span class="card-badge">CRUD · Cassandra</span>
+      </div>
+      <div class="ips-form">
+        <input class="ips-input wide" id="input-ip-bloquear" type="text"
+          placeholder="IP a bloquear  ej: 192.168.1.55" />
+        <input class="ips-input" id="input-motivo" type="text" placeholder="Motivo (opcional)" style="width:180px" />
+        <button class="btn-bloquear" onclick="bloquearIPManual()">⛔ Bloquear IP</button>
+      </div>
+      <div class="lista-ips" id="lista-ips">
+        <div class="ips-empty">Sin IPs bloqueadas</div>
+      </div>
+    </div>
+    <!-- Historial de intentos bloqueados -->
+    <div class="ips-panel">
+      <div class="card-header" style="padding:12px 16px;margin:0;border-bottom:1px solid var(--border)">
+        <span class="card-title">Historial — Intentos Bloqueados</span>
+        <span class="card-badge">tiempo real</span>
+      </div>
+      <div class="historial-lista" id="historial-lista">
+        <div class="ips-empty">Sin intentos registrados</div>
+      </div>
+    </div>
+
+    <!-- Tabla de logs recientes -->
+    <div class="logs-card">
       <div class="card-header">
-        <span class="card-title">Tráfico por Hora</span>
-        <span class="card-badge">24h · requests</span>
+        <span class="card-title">Logs Recientes</span>
+        <span class="card-badge">últimas entradas</span>
       </div>
-      <div class="chart-wrap">
-        <canvas id="chart-trafico"></canvas>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Hora</th>
+              <th>IP Cliente</th>
+              <th>Método</th>
+              <th>Endpoint</th>
+              <th>Código HTTP</th>
+              <th>Latencia (ms)</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-logs">
+            <tr>
+              <td colspan="6" style="text-align:center;color:var(--muted);padding:20px">Cargando...</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Top Endpoints</span>
-        <span class="card-badge">distribución</span>
-      </div>
-      <div class="chart-wrap">
-        <canvas id="chart-endpoints"></canvas>
-      </div>
-    </div>
-  </div>
 
-  <!-- Graficas secundarias -->
-  <div class="charts-bottom">
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Errores 5xx / Hora</span>
-        <span class="card-badge">barras</span>
-      </div>
-      <div class="chart-wrap-sm">
-        <canvas id="chart-errores"></canvas>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Latencia por Endpoint</span>
-        <span class="card-badge">ms · promedio</span>
-      </div>
-      <div class="chart-wrap-sm">
-        <canvas id="chart-latencia"></canvas>
-      </div>
-    </div>
-  </div>
+  </main>
 
-  <!-- Alertas automaticas -->
-  <div class="alertas-zona">
-    <div class="alerta-banner alerta-danger" id="alerta-tasa">
-      <span class="alerta-titulo">⚠ ALERTA — Tasa de error elevada</span>
-      <span style="color:var(--muted);font-size:11px">supera el umbral del 10%</span>
-      <span class="alerta-valor" id="val-tasa">—</span>
-    </div>
-    <div class="alerta-banner alerta-warn" id="alerta-latencia">
-      <span class="alerta-titulo">⚠ ALERTA — Latencia alta</span>
-      <span style="color:var(--muted);font-size:11px">supera los 800ms promedio</span>
-      <span class="alerta-valor" id="val-lat">—</span>
-    </div>
-  </div>
+  <footer>
+    LOG SIMULATOR · Universidad Mayor de San Andrés · Bases de Datos 3 · Apache Cassandra 4.1
+  </footer>
 
-  <!-- Panel IPs bloqueadas -->
-  <div class="ips-panel">
-    <div class="card-header" style="padding:12px 16px;margin:0;border-bottom:1px solid var(--border)">
-      <span class="card-title">Firewall — IPs Bloqueadas</span>
-      <span class="card-badge">CRUD · Cassandra</span>
-    </div>
-    <div class="ips-form">
-      <input class="ips-input wide" id="input-ip-bloquear"
-        type="text" placeholder="IP a bloquear  ej: 192.168.1.55" />
-      <input class="ips-input" id="input-motivo"
-        type="text" placeholder="Motivo (opcional)" style="width:180px" />
-      <button class="btn-bloquear" onclick="bloquearIPManual()">⛔ Bloquear IP</button>
-    </div>
-    <div class="lista-ips" id="lista-ips">
-      <div class="ips-empty">Sin IPs bloqueadas</div>
-    </div>
-  </div>
-  <!-- Historial de intentos bloqueados -->
-<div class="ips-panel">
-  <div class="card-header" style="padding:12px 16px;margin:0;border-bottom:1px solid var(--border)">
-    <span class="card-title">Historial — Intentos Bloqueados</span>
-    <span class="card-badge">tiempo real</span>
-  </div>
-  <div class="historial-lista" id="historial-lista">
-    <div class="ips-empty">Sin intentos registrados</div>
-  </div>
-</div>
-
-  <!-- Tabla de logs recientes -->
-  <div class="logs-card">
-    <div class="card-header">
-      <span class="card-title">Logs Recientes</span>
-      <span class="card-badge">últimas entradas</span>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Hora</th>
-            <th>IP Cliente</th>
-            <th>Método</th>
-            <th>Endpoint</th>
-            <th>Código HTTP</th>
-            <th>Latencia (ms)</th>
-          </tr>
-        </thead>
-        <tbody id="tabla-logs">
-          <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">Cargando...</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-</main>
-
-<footer>
-  LOG SIMULATOR · Universidad Mayor de San Andrés · Bases de Datos 3 · Apache Cassandra 4.1
-</footer>
-
-<script src="/static/dashboard.js"></script>
+  <script src="/static/dashboard.js"></script>
 </body>
+
 </html>

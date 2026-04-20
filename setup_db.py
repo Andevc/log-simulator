@@ -1,11 +1,3 @@
-"""
-setup_db.py - Inicializa el keyspace y las tablas en Cassandra local.
-Ejecutar UNA SOLA VEZ antes de arrancar el generador o la app.
-
-Uso:
-    python setup_db.py
-"""
-
 from __future__ import annotations
 
 import sys
@@ -18,7 +10,7 @@ from cassandra.policies import RoundRobinPolicy
 CASSANDRA_HOST = "127.0.0.1"
 CASSANDRA_PORT = 9042
 MAX_RETRIES    = 20
-RETRY_DELAY    = 5  # segundos entre reintentos
+RETRY_DELAY    = 5  
 
 
 def wait_for_cassandra() -> "Session":

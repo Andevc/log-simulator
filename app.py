@@ -1,13 +1,3 @@
-"""
-app.py - Dashboard de analisis de logs en tiempo real.
-Sirve el frontend estatico y expone 6 endpoints REST que consultan Cassandra.
-
-Uso:
-    python app.py
-
-Luego abrir: http://localhost:5000
-"""
-
 from __future__ import annotations
 
 import os

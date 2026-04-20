@@ -1,11 +1,3 @@
-"""
-seed_ips.py - Precarga IPs bloqueadas con distintos niveles, motivos e intentos.
-Ejecutar UNA VEZ antes de la exposicion para que el panel Firewall no este vacio.
-
-Uso:
-    python seed_ips.py
-"""
-
 from __future__ import annotations
 
 import sys
@@ -21,9 +13,6 @@ CASSANDRA_HOST = "127.0.0.1"
 CASSANDRA_PORT = 9042
 KEYSPACE       = "log_simulator"
 
-# ─── IPs precargadas ──────────────────────────────────────────────────────────
-# (ip, motivo, nivel, intentos, minutos_atras)
-
 IPS_SEED = [
     ("185.220.101.45", "Fuerza bruta detectada",   "ALTO",  47, 120),
     ("194.165.16.72",  "Demasiados errores 500",   "ALTO",  23,  90),
@@ -33,7 +22,6 @@ IPS_SEED = [
     ("77.88.5.214",    "Mantenimiento",            "BAJO",   1,  15),
 ]
 
-# Intentos de acceso simulados por IP (endpoint, metodo)
 INTENTOS_SEED = [
     ("/api/auth/login",  "POST"),
     ("/api/users",       "GET"),

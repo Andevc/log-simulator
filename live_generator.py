@@ -1,13 +1,3 @@
-"""
-live_generator.py - Genera logs en tiempo real y simula bloqueos automaticos de IPs.
-Usar durante la exposicion en una terminal separada mientras app.py corre.
-
-Uso:
-    python live_generator.py
-
-Presiona Ctrl+C para detener.
-"""
-
 from __future__ import annotations
 
 import random

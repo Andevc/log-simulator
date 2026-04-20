@@ -1,13 +1,3 @@
-"""
-generator.py - Genera 500 000 registros de acceso web y los inserta
-en Cassandra usando el patron doble-write (logs_por_hora + logs_por_endpoint).
-
-Uso:
-    python generator.py
-
-Requiere que setup_db.py haya sido ejecutado primero.
-"""
-
 from __future__ import annotations
 
 import random
@@ -31,7 +21,6 @@ TOTAL_REGISTROS = 10_000
 BATCH_SIZE      = 200          # registros por lote de insercion
 CONCURRENCIA    = 50           # peticiones paralelas a Cassandra
 
-# Endpoints simulados con sus pesos relativos de trafico
 ENDPOINTS = [
     ("/api/users",          20),
     ("/api/products",       18),
