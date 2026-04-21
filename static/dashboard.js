@@ -165,38 +165,42 @@ function initCharts() {
     }, plugins:{ ...base.plugins, tooltip:{mode:'index',intersect:false} }},
   });
 
-  // 9. Barras agrupadas percentiles P50/P95/P99
-  charts.percentiles = new Chart(document.getElementById('chart-percentiles').getContext('2d'), {
+  // 9. (scatter y percentiles eliminados)
+
+  // 10. Barras agrupadas: cruce de tablas (volumen vs errores por endpoint)
+  charts.cruce = new Chart(document.getElementById('chart-cruce').getContext('2d'), {
     type: 'bar',
     data: { labels:[], datasets:[
-      { label:'P50', data:[], backgroundColor:'rgba(0,212,170,0.7)', borderColor:C.accent, borderWidth:1, borderRadius:3 },
-      { label:'P95', data:[], backgroundColor:'rgba(255,107,53,0.7)', borderColor:C.warn, borderWidth:1, borderRadius:3 },
-      { label:'P99', data:[], backgroundColor:'rgba(255,59,92,0.7)', borderColor:C.danger, borderWidth:1, borderRadius:3 },
-    ]},
-    options: { ...base,
-      plugins: { legend:{ display:true, position:'top',
-        labels:{ color:C.muted, font:{size:10}, boxWidth:10, padding:12 } }},
-      scales: {
-        x:{ grid:{display:false}, ticks:{ callback: function(v) { return shortEp(this.getLabelForValue(v)); }}},
-        y:{ grid:{color:C.border}, beginAtZero:true, title:{display:true,text:'ms',color:C.muted} },
+      {
+        label: 'Total Requests (logs_por_endpoint)',
+        data: [],
+        backgroundColor: 'rgba(0,153,255,0.7)',
+        borderColor: C.accent2,
+        borderWidth: 1,
+        borderRadius: 4,
       },
-    },
-  });
-
-  // 10. Scatter latencia vs volumen
-  charts.scatter = new Chart(document.getElementById('chart-scatter').getContext('2d'), {
-    type: 'scatter',
-    data: { datasets:[{ label:'Endpoints', data:[],
-      backgroundColor: C.endpoints, pointRadius:8, pointHoverRadius:11 }]},
-    options: { ...base,
-      plugins: { legend:{ display:false },
-        tooltip:{ callbacks:{ label: function(ctx) {
-          var ep = ctx.raw.endpoint || '';
-          return shortEp(ep) + ' — vol: ' + ctx.raw.x + ' · lat: ' + ctx.raw.y + 'ms';
-        }}}},
+      {
+        label: 'Errores 5xx (logs_por_hora)',
+        data: [],
+        backgroundColor: 'rgba(255,59,92,0.7)',
+        borderColor: C.danger,
+        borderWidth: 1,
+        borderRadius: 4,
+      },
+    ]},
+    options: {
+      ...base,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: { color: C.muted, font:{ size:10 }, boxWidth:12, padding:14 },
+        },
+      },
       scales: {
-        x:{ grid:{color:C.border}, title:{display:true,text:'Volumen (requests)',color:C.muted} },
-        y:{ grid:{color:C.border}, title:{display:true,text:'Latencia (ms)',color:C.muted} },
+        x: { grid:{ display:false },
+             ticks:{ callback: function(v) { return shortEp(this.getLabelForValue(v)); }}},
+        y: { grid:{ color:C.border }, beginAtZero:true },
       },
     },
   });
@@ -282,6 +286,14 @@ async function actualizarLatenciaHora() {
 
 // ─── Análisis nuevos ──────────────────────────────────────────────────────────
 
+async function actualizarCruce() {
+  var data = await fetchJSON('/stats/cruce');
+  charts.cruce.data.labels = data.map(function(d){ return d.endpoint; });
+  charts.cruce.data.datasets[0].data = data.map(function(d){ return d.volumen; });
+  charts.cruce.data.datasets[1].data = data.map(function(d){ return d.errores; });
+  charts.cruce.update();
+}
+
 async function actualizarRPM() {
   var data = await fetchJSON('/stats/rpm');
   animateValue(document.getElementById('kpi-rpm'), data.rpm.toFixed(1));
@@ -309,15 +321,6 @@ async function actualizarDisponibilidad() {
   }
 }
 
-async function actualizarPercentiles() {
-  var data = await fetchJSON('/stats/percentiles');
-  charts.percentiles.data.labels = data.map(function(d){return d.endpoint;});
-  charts.percentiles.data.datasets[0].data = data.map(function(d){return d.p50;});
-  charts.percentiles.data.datasets[1].data = data.map(function(d){return d.p95;});
-  charts.percentiles.data.datasets[2].data = data.map(function(d){return d.p99;});
-  charts.percentiles.update();
-}
-
 async function actualizarHeatmap() {
   var data = await fetchJSON('/stats/heatmap');
   var cont = document.getElementById('heatmap-container');
@@ -326,13 +329,12 @@ async function actualizarHeatmap() {
   var max = Math.max.apply(null, data.map(function(d){return d.total;})) || 1;
 
   var html = '';
-  // Dos filas de 12 celdas (horas 0-11 y 12-23)
   data.forEach(function(d) {
     var ratio   = d.total / max;
     var opacity = Math.max(0.1, ratio);
-    var r = 0, g = 212, b = 170; // color base accent
-    if (ratio > 0.7)      { r=255; g=107; b=53; }  // naranja
-    else if (ratio > 0.4) { r=0;   g=153; b=255; } // azul
+    var r = 0, g = 212, b = 170;
+    if (ratio > 0.7)      { r=255; g=107; b=53; }
+    else if (ratio > 0.4) { r=0;   g=153; b=255; }
 
     var bg   = 'rgba(' + r + ',' + g + ',' + b + ',' + opacity.toFixed(2) + ')';
     var text = d.total > 0 ? fmt(d.total) : '';
@@ -345,17 +347,6 @@ async function actualizarHeatmap() {
       '</div>';
   });
   cont.innerHTML = html;
-}
-
-async function actualizarScatter() {
-  var data = await fetchJSON('/stats/scatter');
-  charts.scatter.data.datasets[0].data = data.map(function(d, i) {
-    return { x: d.volumen, y: d.latencia, endpoint: d.endpoint };
-  });
-  charts.scatter.data.datasets[0].backgroundColor = data.map(function(d, i) {
-    return C.endpoints[i % C.endpoints.length];
-  });
-  charts.scatter.update();
 }
 
 async function actualizarTopIPs() {
@@ -558,11 +549,10 @@ async function refreshAll() {
       actualizarMetodos(),
       actualizarTasaEndpoint(),
       actualizarLatenciaHora(),
+      actualizarCruce(),
       actualizarRPM(),
       actualizarDisponibilidad(),
-      actualizarPercentiles(),
       actualizarHeatmap(),
-      actualizarScatter(),
       actualizarTopIPs(),
       actualizarTabla(),
       actualizarIPsBloqueadas(),

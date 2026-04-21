@@ -149,6 +149,17 @@
         </div>
       </div>
 
+      <!-- Grafica cruce de tablas -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-header">
+          <span class="card-title">Tráfico Total vs Errores 5xx por Endpoint</span>
+          <span class="card-badge">cruza logs_por_endpoint + logs_por_hora · doble-write</span>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="chart-cruce"></canvas>
+        </div>
+      </div>
+
       <div class="alertas-zona">
         <div class="alerta-banner alerta-danger" id="alerta-tasa">
           <span class="alerta-titulo">⚠ ALERTA — Tasa de error elevada</span>
@@ -236,50 +247,28 @@
         </div>
       </div>
 
-      <!-- Percentiles -->
-      <div class="card" style="margin-bottom:14px">
-        <div class="card-header">
-          <span class="card-title">Percentiles de Latencia P50 / P95 / P99</span>
-          <span class="card-badge">ms · por endpoint</span>
-        </div>
-        <div class="chart-wrap">
-          <canvas id="chart-percentiles"></canvas>
-        </div>
-      </div>
-
     </section>
 
     <section class="dashboard-section">
       <div class="section-head">
         <div>
           <div class="section-title">Análisis de Patrones</div>
-          <div class="section-sub">Mapa de calor por hora, scatter de latencia vs volumen y top IPs.</div>
+          <div class="section-sub">Mapa de calor por hora y top IPs por volumen de requests.</div>
         </div>
       </div>
 
-      <!-- Mapa de calor + Scatter -->
-      <div class="charts-bottom" style="margin-bottom:14px">
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">Mapa de Calor — Tráfico por Hora</span>
-            <span class="card-badge">intensidad · 24h</span>
-          </div>
-          <div style="padding: 8px 0">
-            <div id="heatmap-container" style="display:grid;grid-template-columns:repeat(12,1fr);gap:4px"></div>
-            <div style="display:flex;justify-content:space-between;margin-top:8px">
-              <span style="font-size:9px;color:var(--muted)">00:00</span>
-              <span style="font-size:9px;color:var(--muted)">Hora del día</span>
-              <span style="font-size:9px;color:var(--muted)">23:00</span>
-            </div>
-          </div>
+      <!-- Mapa de calor -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-header">
+          <span class="card-title">Mapa de Calor — Tráfico por Hora</span>
+          <span class="card-badge">intensidad · 24h</span>
         </div>
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">Latencia vs Volumen</span>
-            <span class="card-badge">scatter · por endpoint</span>
-          </div>
-          <div class="chart-wrap-sm">
-            <canvas id="chart-scatter"></canvas>
+        <div style="padding: 8px 0">
+          <div id="heatmap-container" style="display:grid;grid-template-columns:repeat(12,1fr);gap:4px"></div>
+          <div style="display:flex;justify-content:space-between;margin-top:8px">
+            <span style="font-size:9px;color:var(--muted)">00:00</span>
+            <span style="font-size:9px;color:var(--muted)">Hora del día</span>
+            <span style="font-size:9px;color:var(--muted)">23:00</span>
           </div>
         </div>
       </div>

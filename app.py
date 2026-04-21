@@ -751,6 +751,47 @@ def top_ips():
     ])
 
 
+# ─── Cruce de tablas: trafico vs errores por endpoint ─────────────────────────
+
+@app.route("/stats/cruce")
+def cruce_tablas():
+    """
+    Combina datos de logs_por_endpoint (volumen total) y logs_por_hora (errores 5xx).
+    Demuestra el patron doble-write: mismos datos, dos tablas, dos consultas distintas.
+    """
+    # TABLA 1: logs_por_endpoint -> volumen total por endpoint
+    volumen: Dict[str, int] = {}
+    for ep in ENDPOINTS_CONOCIDOS:
+        rows = session.execute(
+            "SELECT count(*) FROM logs_por_endpoint WHERE endpoint=%s", (ep,)
+        )
+        volumen[ep] = int(rows.one().count) if rows else 0
+
+    # TABLA 2: logs_por_hora -> errores 5xx por endpoint en las ultimas 24h
+    errores_ep: Dict[str, int] = defaultdict(int)
+    puntos = ultimas_24h()
+    for fecha, hora in puntos:
+        rows = session.execute(
+            "SELECT endpoint, codigo_http FROM logs_por_hora WHERE fecha=%s AND hora=%s",
+            (fecha, hora),
+        )
+        for row in rows:
+            if row.codigo_http >= 500:
+                errores_ep[row.endpoint] += 1
+
+    # Combinar ambas fuentes
+    resultado = []
+    for ep in ENDPOINTS_CONOCIDOS:
+        resultado.append({
+            "endpoint": ep,
+            "volumen":  volumen.get(ep, 0),
+            "errores":  errores_ep.get(ep, 0),
+        })
+
+    resultado.sort(key=lambda x: x["volumen"], reverse=True)
+    return jsonify(resultado)
+
+
 # ─── Entry point ──────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
