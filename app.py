@@ -7,8 +7,8 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
-from cassandra.cluster import Cluster
-from cassandra.policies import RoundRobinPolicy
+from cassandra.cluster import Cluster # type: ignore
+from cassandra.policies import RoundRobinPolicy # type: ignore
 from flask import Flask, jsonify, request, send_from_directory
 
 
@@ -463,6 +463,292 @@ def historial_intentos():
 def motivos():
     """Retorna las listas de motivos y niveles validos para los dropdowns."""
     return jsonify({"motivos": MOTIVOS_VALIDOS, "niveles": NIVELES_VALIDOS})
+
+
+# ─── Distribucion de codigos HTTP ────────────────────────────────────────────
+
+@app.route("/stats/codigos")
+def distribucion_codigos():
+    """
+    Retorna conteo de cada codigo HTTP en las ultimas 24h.
+    Usado por la grafica de dona de codigos HTTP.
+    """
+    conteos: Dict[int, int] = defaultdict(int)
+
+    puntos = ultimas_24h()
+    for fecha, hora in puntos:
+        rows = session.execute(
+            "SELECT codigo_http FROM logs_por_hora WHERE fecha=%s AND hora=%s",
+            (fecha, hora),
+        )
+        for row in rows:
+            conteos[row.codigo_http] += 1
+
+    return jsonify([
+        {"codigo": k, "total": v}
+        for k, v in sorted(conteos.items())
+    ])
+
+
+# ─── Distribucion de metodos HTTP ─────────────────────────────────────────────
+
+@app.route("/stats/metodos")
+def distribucion_metodos():
+    """
+    Retorna conteo de cada metodo HTTP en las ultimas 24h.
+    Usado por la grafica de dona de metodos HTTP.
+    """
+    conteos: Dict[str, int] = defaultdict(int)
+
+    puntos = ultimas_24h()
+    for fecha, hora in puntos:
+        rows = session.execute(
+            "SELECT metodo FROM logs_por_hora WHERE fecha=%s AND hora=%s",
+            (fecha, hora),
+        )
+        for row in rows:
+            conteos[row.metodo] += 1
+
+    return jsonify([
+        {"metodo": k, "total": v}
+        for k, v in sorted(conteos.items(), key=lambda x: x[1], reverse=True)
+    ])
+
+
+# ─── Tasa de error por endpoint ───────────────────────────────────────────────
+
+@app.route("/stats/tasa-error-endpoint")
+def tasa_error_endpoint():
+    """
+    Retorna tasa de error (%) por endpoint.
+    Usado por la grafica de barras horizontales de tasa de error.
+    """
+    resultado: List[Dict[str, Any]] = []
+
+    for ep in ENDPOINTS_CONOCIDOS:
+        rows = session.execute(
+            "SELECT codigo_http FROM logs_por_endpoint WHERE endpoint=%s LIMIT 5000",
+            (ep,),
+        )
+        total  = 0
+        errores = 0
+        for row in rows:
+            total += 1
+            if row.codigo_http >= 400:
+                errores += 1
+
+        tasa = round((errores / total * 100), 1) if total > 0 else 0
+        resultado.append({"endpoint": ep, "tasa_error": tasa, "total": total})
+
+    resultado.sort(key=lambda x: x["tasa_error"], reverse=True)
+    return jsonify(resultado)
+
+
+# ─── Latencia promedio por hora ───────────────────────────────────────────────
+
+@app.route("/stats/latencia-hora")
+def latencia_por_hora():
+    """
+    Retorna latencia promedio por hora en las ultimas 24h.
+    Usado por la grafica de linea de evolucion de latencia.
+    """
+    resultado: Dict[str, Any] = {}
+
+    puntos = ultimas_24h()
+    for fecha, hora in puntos:
+        rows = session.execute(
+            "SELECT latencia_ms FROM logs_por_hora WHERE fecha=%s AND hora=%s",
+            (fecha, hora),
+        )
+        valores = [row.latencia_ms for row in rows]
+        promedio = round(sum(valores) / len(valores), 1) if valores else 0
+        etiqueta = "{:02d}:00".format(hora)
+        resultado[etiqueta] = promedio
+
+    return jsonify([
+        {"hora": k, "latencia": v}
+        for k, v in resultado.items()
+    ])
+
+
+# ─── Percentil de latencia P95 / P99 ─────────────────────────────────────────
+
+@app.route("/stats/percentiles")
+def percentiles_latencia():
+    """
+    Retorna P50, P95 y P99 de latencia por endpoint.
+    Detecta picos que el promedio oculta.
+    """
+    import math
+    resultado: List[Dict[str, Any]] = []
+
+    for ep in ENDPOINTS_CONOCIDOS:
+        rows = session.execute(
+            "SELECT latencia_ms FROM logs_por_endpoint WHERE endpoint=%s LIMIT 5000",
+            (ep,),
+        )
+        valores = sorted([row.latencia_ms for row in rows])
+        if not valores:
+            resultado.append({"endpoint": ep, "p50": 0, "p95": 0, "p99": 0})
+            continue
+
+        def percentil(datos, p):
+            idx = int(math.ceil(len(datos) * p / 100.0)) - 1
+            return datos[max(0, min(idx, len(datos) - 1))]
+
+        resultado.append({
+            "endpoint": ep,
+            "p50": percentil(valores, 50),
+            "p95": percentil(valores, 95),
+            "p99": percentil(valores, 99),
+        })
+
+    resultado.sort(key=lambda x: x["p95"], reverse=True)
+    return jsonify(resultado)
+
+
+# ─── Requests por minuto (RPM) ────────────────────────────────────────────────
+
+@app.route("/stats/rpm")
+def requests_por_minuto():
+    """
+    Retorna el RPM de los ultimos 5 minutos.
+    """
+    ahora     = datetime.utcnow()
+    hace_5min = ahora - timedelta(minutes=5)
+
+    total = 0
+    # Consultar la hora actual y la anterior por si el rango cruza la hora
+    for delta in [0, 1]:
+        t      = ahora - timedelta(hours=delta)
+        fecha  = t.date()
+        hora   = t.hour
+        rows   = session.execute(
+            "SELECT ts FROM logs_por_hora WHERE fecha=%s AND hora=%s",
+            (fecha, hora),
+        )
+        for row in rows:
+            if row.ts and row.ts.replace(tzinfo=None) >= hace_5min:
+                total += 1
+
+    rpm = round(total / 5.0, 1)
+    return jsonify({"rpm": rpm, "total_5min": total})
+
+
+# ─── Mapa de calor hora vs trafico ────────────────────────────────────────────
+
+@app.route("/stats/heatmap")
+def heatmap():
+    """
+    Retorna matriz de trafico: para cada hora del dia (0-23)
+    retorna el conteo de requests. Usado por el mapa de calor.
+    """
+    conteos: Dict[int, int] = defaultdict(int)
+
+    puntos = ultimas_24h()
+    for fecha, hora in puntos:
+        rows = session.execute(
+            "SELECT count(*) FROM logs_por_hora WHERE fecha=%s AND hora=%s",
+            (fecha, hora),
+        )
+        cantidad = rows.one().count if rows else 0
+        conteos[hora] += int(cantidad)
+
+    return jsonify([
+        {"hora": h, "total": conteos.get(h, 0)}
+        for h in range(24)
+    ])
+
+
+# ─── Scatter: latencia vs volumen por endpoint ────────────────────────────────
+
+@app.route("/stats/scatter")
+def scatter_latencia_volumen():
+    """
+    Retorna por endpoint: total de requests y latencia promedio.
+    Usado por el scatter plot latencia vs volumen.
+    """
+    resultado: List[Dict[str, Any]] = []
+
+    for ep in ENDPOINTS_CONOCIDOS:
+        rows = session.execute(
+            "SELECT latencia_ms FROM logs_por_endpoint WHERE endpoint=%s LIMIT 5000",
+            (ep,),
+        )
+        valores = [row.latencia_ms for row in rows]
+        if not valores:
+            continue
+        resultado.append({
+            "endpoint":  ep,
+            "volumen":   len(valores),
+            "latencia":  round(sum(valores) / len(valores), 1),
+        })
+
+    return jsonify(resultado)
+
+
+# ─── Ratio de disponibilidad (uptime) ────────────────────────────────────────
+
+@app.route("/stats/disponibilidad")
+def disponibilidad():
+    """
+    Retorna porcentaje de requests exitosos (2xx) vs total.
+    """
+    total    = 0
+    exitosos = 0
+
+    puntos = ultimas_24h()
+    for fecha, hora in puntos:
+        rows = session.execute(
+            "SELECT codigo_http FROM logs_por_hora WHERE fecha=%s AND hora=%s",
+            (fecha, hora),
+        )
+        for row in rows:
+            total += 1
+            if 200 <= row.codigo_http < 300:
+                exitosos += 1
+
+    ratio = round((exitosos / total * 100), 2) if total > 0 else 0
+    return jsonify({
+        "ratio":    ratio,
+        "exitosos": exitosos,
+        "total":    total,
+        "fallidos": total - exitosos,
+    })
+
+
+# ─── Top IPs por volumen de requests ─────────────────────────────────────────
+
+@app.route("/stats/top-ips")
+def top_ips():
+    """
+    Retorna las 10 IPs con mas requests en las ultimas 24h.
+    """
+    conteos: Dict[str, int] = defaultdict(int)
+
+    puntos = ultimas_24h()
+    for fecha, hora in puntos:
+        rows = session.execute(
+            "SELECT ip_cliente FROM logs_por_hora WHERE fecha=%s AND hora=%s",
+            (fecha, hora),
+        )
+        for row in rows:
+            conteos[row.ip_cliente] += 1
+
+    ordenadas = sorted(conteos.items(), key=lambda x: x[1], reverse=True)[:10]
+
+    # Marcar si la IP esta bloqueada
+    ips_bloqueadas_rows = session.execute("SELECT ip FROM ips_bloqueadas")
+    bloqueadas          = {r.ip for r in ips_bloqueadas_rows}
+
+    return jsonify([
+        {
+            "ip":        ip,
+            "total":     total,
+            "bloqueada": ip in bloqueadas,
+        }
+        for ip, total in ordenadas
+    ])
 
 
 # ─── Entry point ──────────────────────────────────────────────────────────────

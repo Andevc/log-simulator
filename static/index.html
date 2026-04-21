@@ -106,6 +106,49 @@
         </div>
       </div>
 
+      <!-- 4 graficas nuevas -->
+      <div class="charts-bottom">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Distribución de Códigos HTTP</span>
+            <span class="card-badge">dona · 24h</span>
+          </div>
+          <div class="chart-wrap-sm">
+            <canvas id="chart-codigos"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Métodos HTTP</span>
+            <span class="card-badge">dona · GET/POST/PUT/DELETE</span>
+          </div>
+          <div class="chart-wrap-sm">
+            <canvas id="chart-metodos"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="charts-bottom">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Tasa de Error por Endpoint</span>
+            <span class="card-badge">% errores 4xx + 5xx</span>
+          </div>
+          <div class="chart-wrap-sm">
+            <canvas id="chart-tasa-endpoint"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Evolución de Latencia</span>
+            <span class="card-badge">ms promedio · 24h</span>
+          </div>
+          <div class="chart-wrap-sm">
+            <canvas id="chart-latencia-hora"></canvas>
+          </div>
+        </div>
+      </div>
+
       <div class="alertas-zona">
         <div class="alerta-banner alerta-danger" id="alerta-tasa">
           <span class="alerta-titulo">⚠ ALERTA — Tasa de error elevada</span>
@@ -149,7 +192,108 @@
     <section class="dashboard-section">
       <div class="section-head">
         <div>
-          <div class="section-title">IPs Bloqueadas e Historial</div>
+          <div class="section-title">Análisis de Rendimiento</div>
+          <div class="section-sub">Percentiles de latencia, RPM en tiempo real y ratio de disponibilidad.</div>
+        </div>
+      </div>
+
+      <!-- RPM + Disponibilidad -->
+      <div class="kpis" style="grid-template-columns: repeat(3,1fr); margin-bottom:14px">
+        <div class="kpi" style="--accent-color: var(--accent2)">
+          <div class="kpi-label">RPM · últimos 5 min</div>
+          <div class="kpi-value" id="kpi-rpm">—</div>
+          <div class="kpi-suffix">requests / minuto</div>
+        </div>
+        <div class="kpi" style="--accent-color: var(--accent)">
+          <div class="kpi-label">Disponibilidad</div>
+          <div class="kpi-value" id="kpi-uptime">—</div>
+          <div class="kpi-suffix">% requests exitosos 2xx</div>
+        </div>
+        <div class="kpi" style="--accent-color: var(--danger)">
+          <div class="kpi-label">Requests Fallidos</div>
+          <div class="kpi-value" id="kpi-fallidos">—</div>
+          <div class="kpi-suffix">4xx + 5xx · 24h</div>
+        </div>
+      </div>
+
+      <!-- Barra de uptime -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-header">
+          <span class="card-title">Ratio de Disponibilidad</span>
+          <span class="card-badge">uptime · 2xx vs total</span>
+        </div>
+        <div style="padding: 8px 0 4px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+            <span style="font-size:11px;color:var(--accent)" id="uptime-label-ok">Exitosos: —</span>
+            <span style="font-size:11px;color:var(--danger)" id="uptime-label-fail">Fallidos: —</span>
+          </div>
+          <div style="background:var(--border);border-radius:6px;height:18px;overflow:hidden">
+            <div id="uptime-bar"
+              style="height:100%;width:0%;background:var(--accent);border-radius:6px;transition:width 0.6s ease;display:flex;align-items:center;justify-content:center">
+              <span id="uptime-pct" style="font-size:10px;font-weight:700;color:#000"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Percentiles -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-header">
+          <span class="card-title">Percentiles de Latencia P50 / P95 / P99</span>
+          <span class="card-badge">ms · por endpoint</span>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="chart-percentiles"></canvas>
+        </div>
+      </div>
+
+    </section>
+
+    <section class="dashboard-section">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Análisis de Patrones</div>
+          <div class="section-sub">Mapa de calor por hora, scatter de latencia vs volumen y top IPs.</div>
+        </div>
+      </div>
+
+      <!-- Mapa de calor + Scatter -->
+      <div class="charts-bottom" style="margin-bottom:14px">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Mapa de Calor — Tráfico por Hora</span>
+            <span class="card-badge">intensidad · 24h</span>
+          </div>
+          <div style="padding: 8px 0">
+            <div id="heatmap-container" style="display:grid;grid-template-columns:repeat(12,1fr);gap:4px"></div>
+            <div style="display:flex;justify-content:space-between;margin-top:8px">
+              <span style="font-size:9px;color:var(--muted)">00:00</span>
+              <span style="font-size:9px;color:var(--muted)">Hora del día</span>
+              <span style="font-size:9px;color:var(--muted)">23:00</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Latencia vs Volumen</span>
+            <span class="card-badge">scatter · por endpoint</span>
+          </div>
+          <div class="chart-wrap-sm">
+            <canvas id="chart-scatter"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top IPs -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Top IPs por Volumen de Requests</span>
+          <span class="card-badge">24h · click para bloquear</span>
+        </div>
+        <div id="top-ips-container" style="padding: 4px 0"></div>
+      </div>
+
+    </section>
           <div class="section-sub">Gestión de firewall y seguimiento de intentos de acceso denegados.</div>
         </div>
       </div>

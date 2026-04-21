@@ -16,6 +16,23 @@
     --mono:    'JetBrains Mono', monospace;
 }
 
+/* :root {
+  --bg:        #f0f2f5;
+  --surface:   #ffffff;
+  --card:      #ffffff;
+  --border:    #dde1e9;
+  --border2:   #c4cad6;
+  --accent:    #00a884;
+  --accent2:   #0077cc;
+  --warn:      #d95f1a;
+  --danger:    #cc1f3c;
+  --text:      #1a1f2e;
+  --muted:     #5a6480;
+  --dim:       #9aa0b0;
+  --green:     #00a884;
+  --mono:      'JetBrains Mono', 'Courier New', monospace;
+
+} */
 body {
     background: var(--bg);
     color: var(--text);
