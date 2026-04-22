@@ -6,19 +6,19 @@ import time
 import uuid
 from datetime import datetime
 
-from cassandra.cluster import Cluster
-from cassandra.policies import RoundRobinPolicy
-from faker import Faker
+from cassandra.cluster import Cluster  # type: ignore
+from cassandra.policies import RoundRobinPolicy  # type: ignore
+from faker import Faker  # type: ignore
 
 
 # ─── Configuracion ────────────────────────────────────────────────────────────
 
 CASSANDRA_HOST     = "127.0.0.1"
 CASSANDRA_PORT     = 9042
-KEYSPACE           = "log_simulator"
+KEYSPACE           = "log_simulator_1"
 
-REGISTROS_POR_LOTE = 15    # logs normales por rafaga
-PAUSA_SEGUNDOS     = 2     # segundos entre rafagas
+REGISTROS_POR_LOTE = 20    # logs normales por rafaga
+PAUSA_SEGUNDOS     = 1     # segundos entre rafagas
 
 # Cada cuantos lotes se evalua si bloquear una IP automaticamente
 LOTES_ENTRE_BLOQUEOS  = 15   # ~30 segundos

@@ -3,8 +3,8 @@ from __future__ import annotations
 import sys
 import time
 
-from cassandra.cluster import Cluster
-from cassandra.policies import RoundRobinPolicy
+from cassandra.cluster import Cluster # type: ignore
+from cassandra.policies import RoundRobinPolicy # type: ignore
 
 
 CASSANDRA_HOST = "127.0.0.1"
@@ -13,7 +13,7 @@ MAX_RETRIES    = 20
 RETRY_DELAY    = 5  
 
 
-def wait_for_cassandra() -> "Session":
+def wait_for_cassandra() -> "Session":  # type: ignore
     """Reintenta la conexion hasta que Cassandra este lista."""
     print("Esperando a que Cassandra este disponible", end="", flush=True)
     for attempt in range(1, MAX_RETRIES + 1):
@@ -42,11 +42,11 @@ def create_schema(session) -> None:
 
     ddl_statements = [
         """
-        CREATE KEYSPACE IF NOT EXISTS log_simulator
+        CREATE KEYSPACE IF NOT EXISTS log_simulator_1
             WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}
             AND durable_writes = true
         """,
-        "USE log_simulator",
+        "USE log_simulator_1",
         """
         CREATE TABLE IF NOT EXISTS logs_por_hora (
             fecha       DATE,
@@ -98,8 +98,8 @@ def create_schema(session) -> None:
 
     print("Schema creado correctamente.")
     print()
-    print("Tablas disponibles en keyspace 'log_simulator':")
-    rows = session.execute("SELECT table_name FROM system_schema.tables WHERE keyspace_name='log_simulator'")
+    print("Tablas disponibles en keyspace 'log_simulator_1':")
+    rows = session.execute("SELECT table_name FROM system_schema.tables WHERE keyspace_name='log_simulator_1'")
     for row in rows:
         print("  -", row.table_name)
 

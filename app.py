@@ -16,7 +16,7 @@ from flask import Flask, jsonify, request, send_from_directory
 
 CASSANDRA_HOST = "127.0.0.1"
 CASSANDRA_PORT = 9042
-KEYSPACE       = "log_simulator"
+KEYSPACE       = "log_simulator_1"
 
 ENDPOINTS_CONOCIDOS = [
     "/api/users",

@@ -5,13 +5,13 @@ import time
 import uuid
 from datetime import datetime, timedelta
 
-from cassandra.cluster import Cluster
-from cassandra.policies import RoundRobinPolicy
+from cassandra.cluster import Cluster  # type: ignore
+from cassandra.policies import RoundRobinPolicy # type: ignore
 
 
 CASSANDRA_HOST = "127.0.0.1"
 CASSANDRA_PORT = 9042
-KEYSPACE       = "log_simulator"
+KEYSPACE       = "log_simulator_1"
 
 IPS_SEED = [
     ("185.220.101.45", "Fuerza bruta detectada",   "ALTO",  47, 120),

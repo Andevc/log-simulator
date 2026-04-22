@@ -6,18 +6,18 @@ import time
 import uuid
 from datetime import datetime, timedelta
 
-from cassandra.cluster import Cluster
-from cassandra.concurrent import execute_concurrent_with_args
-from cassandra.policies import RoundRobinPolicy
-from faker import Faker
+from cassandra.cluster import Cluster  # type: ignore
+from cassandra.concurrent import execute_concurrent_with_args # type: ignore
+from cassandra.policies import RoundRobinPolicy # type: ignore
+from faker import Faker # type: ignore
 
 
 # ─── Configuracion ────────────────────────────────────────────────────────────
 
 CASSANDRA_HOST  = "127.0.0.1"
 CASSANDRA_PORT  = 9042
-KEYSPACE        = "log_simulator"
-TOTAL_REGISTROS = 20_000
+KEYSPACE        = "log_simulator_1"
+TOTAL_REGISTROS = 50_000
 BATCH_SIZE      = 200          # registros por lote de insercion
 CONCURRENCIA    = 50           # peticiones paralelas a Cassandra
 
