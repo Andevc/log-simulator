@@ -4,7 +4,7 @@ import os
 import sys
 import uuid
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 
 from cassandra.cluster import Cluster # type: ignore
@@ -30,6 +30,8 @@ ENDPOINTS_CONOCIDOS = [
     "/api/reports",
     "/healthcheck",
 ]
+
+LOCAL_TZ = datetime.now().astimezone().tzinfo
 
 
 # ─── Conexion global ──────────────────────────────────────────────────────────
@@ -58,9 +60,22 @@ session = conectar_cassandra()  # sesion compartida por todos los endpoints
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
+def ahora_local() -> datetime:
+    """Retorna fecha/hora local con zona horaria."""
+    return datetime.now(LOCAL_TZ)
+
+
+def a_local(ts: datetime | None) -> datetime | None:
+    """Normaliza timestamps de Cassandra a hora local para mostrar/filtrar."""
+    if ts is None:
+        return None
+    if ts.tzinfo is None:
+        ts = ts.replace(tzinfo=timezone.utc)
+    return ts.astimezone(LOCAL_TZ)
+
 def ultimas_24h():
     """Retorna lista de (fecha_date, hora_int) de las ultimas 24 horas."""
-    ahora    = datetime.utcnow()
+    ahora    = ahora_local()
     hace_24h = ahora - timedelta(hours=24)
     puntos   = []
     cursor   = hace_24h.replace(minute=0, second=0, microsecond=0)
@@ -240,17 +255,21 @@ def logs_recientes():
             (ep,),
         )
         for row in rows:
+            ts_local = a_local(row.ts)
             todos.append({
                 "endpoint":    row.endpoint,
-                "timestamp":   row.ts.strftime("%H:%M:%S") if row.ts else "",
+                "timestamp":   ts_local.strftime("%H:%M:%S") if ts_local else "",
                 "ip":          row.ip_cliente,
                 "metodo":      row.metodo,
                 "codigo":      row.codigo_http,
                 "latencia_ms": row.latencia_ms,
+                "_sort_ts":    ts_local.timestamp() if ts_local else -1,
             })
 
     # Ordenar por timestamp descendente y tomar los 50 mas recientes
-    todos.sort(key=lambda x: x["timestamp"], reverse=True)
+    todos.sort(key=lambda x: x["_sort_ts"], reverse=True)
+    for item in todos:
+        item.pop("_sort_ts", None)
     return jsonify(todos[:50])
 
 
@@ -278,7 +297,7 @@ def accion_usuario():
         # Registrar intento en historial e incrementar contador
         session.execute(
             "INSERT INTO intentos_bloqueados (ip, ts, endpoint, metodo) VALUES (%s, %s, %s, %s)",
-            (ip, datetime.utcnow(), endpoint, metodo)
+            (ip, ahora_local(), endpoint, metodo)
         )
         session.execute(
             "UPDATE ips_bloqueadas SET intentos = intentos + 1 WHERE ip=%s", (ip,)
@@ -286,7 +305,7 @@ def accion_usuario():
         return jsonify({"bloqueada": True, "mensaje": "IP bloqueada — acceso denegado"}), 403
     
     # Generar el log
-    ahora   = datetime.utcnow()
+    ahora   = ahora_local()
     log_id  = uuid.uuid4()
     codigo  = random.choices(
         [200, 200, 200, 201, 400, 404, 500, 503],
@@ -344,13 +363,14 @@ def listar_ips():
     rows = session.execute("SELECT ip, motivo, nivel, bloqueada_en, intentos FROM ips_bloqueadas")
     resultado = []
     for row in rows:
-        ts = row.bloqueada_en.timestamp() if row.bloqueada_en else -1
+        bloqueada_local = a_local(row.bloqueada_en)
+        ts = bloqueada_local.timestamp() if bloqueada_local else -1
         resultado.append({
             "ip":          row.ip,
             "motivo":      row.motivo or "Actividad sospechosa",
             "nivel":       row.nivel  or "BAJO",
             "intentos":    row.intentos or 0,
-            "bloqueada_en": row.bloqueada_en.strftime("%H:%M:%S %d/%m/%Y") if row.bloqueada_en else "",
+            "bloqueada_en": bloqueada_local.strftime("%H:%M:%S %d/%m/%Y") if bloqueada_local else "",
             "_ts": ts,
         })
 
@@ -377,7 +397,7 @@ def bloquear_ip():
 
     session.execute(
         "INSERT INTO ips_bloqueadas (ip, motivo, nivel, bloqueada_en, intentos) VALUES (%s, %s, %s, %s, %s)",
-        (ip, motivo, nivel, datetime.utcnow(), 0)
+        (ip, motivo, nivel, ahora_local(), 0)
     )
     return jsonify({"ok": True, "ip": ip, "motivo": motivo, "nivel": nivel})
 
@@ -418,7 +438,7 @@ def registrar_intento():
     # Registrar en historial
     session.execute(
         "INSERT INTO intentos_bloqueados (ip, ts, endpoint, metodo) VALUES (%s, %s, %s, %s)",
-        (ip, datetime.utcnow(), endpoint, metodo)
+        (ip, ahora_local(), endpoint, metodo)
     )
     # Incrementar contador (UPDATE en Cassandra)
     session.execute(
@@ -448,14 +468,18 @@ def historial_intentos():
             rows.extend(sub)
 
     for row in rows:
+        ts_local = a_local(row.ts)
         todos.append({
             "ip":       row.ip,
-            "ts":       row.ts.strftime("%H:%M:%S") if row.ts else "",
+            "ts":       ts_local.strftime("%H:%M:%S") if ts_local else "",
             "endpoint": row.endpoint,
             "metodo":   row.metodo,
+            "_sort_ts": ts_local.timestamp() if ts_local else -1,
         })
 
-    todos.sort(key=lambda x: x["ts"], reverse=True)
+    todos.sort(key=lambda x: x["_sort_ts"], reverse=True)
+    for item in todos:
+        item.pop("_sort_ts", None)
     return jsonify(todos[:30])
 
 
@@ -614,7 +638,7 @@ def requests_por_minuto():
     """
     Retorna el RPM de los ultimos 5 minutos.
     """
-    ahora     = datetime.utcnow()
+    ahora     = ahora_local()
     hace_5min = ahora - timedelta(minutes=5)
 
     total = 0
@@ -628,7 +652,8 @@ def requests_por_minuto():
             (fecha, hora),
         )
         for row in rows:
-            if row.ts and row.ts.replace(tzinfo=None) >= hace_5min:
+            ts_local = a_local(row.ts)
+            if ts_local and ts_local >= hace_5min:
                 total += 1
 
     rpm = round(total / 5.0, 1)

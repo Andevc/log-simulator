@@ -52,6 +52,13 @@ MOTIVOS_AUTO = [
 
 NIVELES_AUTO = ["BAJO", "MEDIO", "ALTO"]
 
+LOCAL_TZ = datetime.now().astimezone().tzinfo
+
+
+def ahora_local() -> datetime:
+    """Retorna fecha/hora local con zona horaria."""
+    return datetime.now(LOCAL_TZ)
+
 
 # ─── Conexion ─────────────────────────────────────────────────────────────────
 
@@ -92,7 +99,7 @@ def preparar_statements(session):
 # ─── Insercion de log normal ──────────────────────────────────────────────────
 
 def insertar_log(session, stmt_hora, stmt_endpoint, ip=None, fake=None):
-    ahora    = datetime.utcnow()
+    ahora    = ahora_local()
     log_id   = uuid.uuid4()
     endpoint = random.choices(ENDPOINT_NAMES, weights=ENDPOINT_PESOS, k=1)[0]
     metodo   = random.choice(METODOS)
@@ -130,7 +137,7 @@ def bloquear_ip_automatica(session, fake):
     ip     = fake.ipv4()
     motivo = random.choice(MOTIVOS_AUTO)
     nivel  = random.choices(NIVELES_AUTO, weights=[40, 35, 25], k=1)[0]
-    ahora  = datetime.utcnow()
+    ahora  = ahora_local()
 
     # INSERT en ips_bloqueadas
     session.execute(
@@ -149,7 +156,7 @@ def bloquear_ip_automatica(session, fake):
             """INSERT INTO intentos_bloqueados
                (ip, ts, endpoint, metodo)
                VALUES (%s, %s, %s, %s)""",
-            (ip, datetime.utcnow(), ep, met)
+            (ip, ahora_local(), ep, met)
         )
         session.execute(
             "UPDATE ips_bloqueadas SET intentos = intentos + 1 WHERE ip=%s", (ip,)
@@ -209,7 +216,7 @@ def main():
                         errores += 1
 
                     if total % 3 == 0:
-                        ts    = datetime.utcnow().strftime("%H:%M:%S")
+                        ts    = ahora_local().strftime("%H:%M:%S")
                         marca = " <- ERROR" if codigo >= 500 else ""
                         print("{:<8} {:<6} {:<22} {:<7} {:<6}{}".format(
                             ts, metodo, endpoint, codigo, latencia, marca

@@ -30,6 +30,13 @@ INTENTOS_SEED = [
     ("/api/orders",      "DELETE"),
 ]
 
+LOCAL_TZ = datetime.now().astimezone().tzinfo
+
+
+def ahora_local() -> datetime:
+    """Retorna fecha/hora local con zona horaria."""
+    return datetime.now(LOCAL_TZ)
+
 
 def conectar():
     print("Conectando a Cassandra...", end=" ", flush=True)
@@ -52,7 +59,7 @@ def conectar():
 
 
 def seed(session):
-    ahora = datetime.utcnow()
+    ahora = ahora_local()
     print()
     print("Insertando IPs bloqueadas...")
 

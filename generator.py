@@ -43,7 +43,15 @@ METODOS = ["GET", "GET", "GET", "POST", "PUT", "DELETE"]  # GET mas frecuente
 CODIGOS = [200, 200, 200, 200, 200, 201, 301, 400, 401, 403, 404, 404, 500, 503]
 
 # Ventana de tiempo simulada: ultimas 24 horas
-AHORA     = datetime.utcnow()
+LOCAL_TZ  = datetime.now().astimezone().tzinfo
+
+
+def ahora_local() -> datetime:
+    """Retorna fecha/hora local con zona horaria."""
+    return datetime.now(LOCAL_TZ)
+
+
+AHORA     = ahora_local()
 HACE_24H  = AHORA - timedelta(hours=24)
 
 
