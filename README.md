@@ -62,7 +62,64 @@ Esto instala: `cassandra-driver`, `Flask`, `Faker`, `Werkzeug`.
 
 ---
 
-## Paso 3 — Levantar Cassandra con Docker
+## ⚠️ Solución de error por versión de Python (3.12, 3.13, 3.14+)
+
+Si al ejecutar `app.py` o cualquier script Python aparece este error:
+
+```
+cassandra.DependencyException: Unable to load a default connection class
+- Unable to import asyncore module. Note that this module has been
+  removed in Python 3.12 so when using the driver with this version
+  (or anything newer) you will need to use one of the other event
+  loop implementations.
+```
+
+Significa que tu versión de Python eliminó el módulo `asyncore` que usaba `cassandra-driver` por defecto. Sigue estos pasos para solucionarlo:
+
+### Paso A — Reinstalar cassandra-driver
+
+```
+pip uninstall cassandra-driver -y
+pip install "cassandra-driver==3.30.0" --no-cache-dir --only-binary :all:
+```
+
+### Paso B — Instalar gevent
+
+```
+pip install gevent
+```
+
+### Paso C — Agregar estas líneas al inicio de CADA archivo Python del proyecto
+
+Abre `app.py`, `generator.py`, `live_generator.py`, `setup_db.py` y `seed_ips.py` y agrega estas dos líneas al inicio absoluto de cada archivo, antes de cualquier otro import:
+
+```python
+from gevent import monkey
+monkey.patch_all()
+```
+
+Ejemplo de cómo debe quedar el inicio de `app.py`:
+
+```python
+from gevent import monkey
+monkey.patch_all()
+
+from __future__ import annotations
+import os
+import sys
+...
+```
+
+Luego se debe de eliminar la siguiente linea:
+```python
+from __future__ import annotations
+```
+
+> **Importante:** estas dos líneas deben ser las primeras de todo el archivo, antes de cualquier otro import. Si van después de otro import no funcionan.
+
+---
+
+## Paso 3 — Levantar Cassandra con Docker (Opcional si no se tiene la imagen de Cassandra en Docker)
 
 Primero abre **Docker Desktop** y espera a que esté corriendo (ícono en la barra de tareas).
 
@@ -227,17 +284,6 @@ Navegador:
 
 ---
 
-## Cómo demostrar el CRUD en la exposición
-
-1. Abre el simulador (`/usuario`) — anota la IP que aparece arriba en verde
-2. En el dashboard, panel **Firewall**, escribe esa IP, selecciona motivo y nivel, haz click en **Bloquear IP**
-3. Vuelve al simulador e intenta cualquier acción → aparece overlay rojo "ACCESO DENEGADO"
-4. El intento queda registrado en el **Historial de intentos bloqueados** del dashboard
-5. Cambia el motivo o nivel desde los dropdowns inline y haz click en **Guardar** → eso es el UPDATE
-6. Haz click en **Eliminar** → la IP se desbloquea, el simulador vuelve a funcionar
-
----
-
 ## Comandos útiles de Docker
 
 ```bash
@@ -294,3 +340,6 @@ SELECT * FROM ips_bloqueadas;
 **"dashboard.js 404"**
 → En `static/index.html` busca la última línea con `<script>` y asegúrate que diga:
 → `<script src="/static/dashboard.js"></script>`
+
+**Error "Unable to import asyncore module" en Python 3.12 o superior**
+→ Sigue los pasos de la sección **⚠️ Solución de error por versión de Python** que está al inicio de esta guía.

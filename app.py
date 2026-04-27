@@ -824,4 +824,4 @@ if __name__ == "__main__":
     print("Dashboard disponible en: http://localhost:5000")
     print("Presiona Ctrl+C para detener.")
     print()
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=5050, debug=False)

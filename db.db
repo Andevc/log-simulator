@@ -1,10 +1,8 @@
 CREATE KEYSPACE IF NOT EXISTS log_simulator
     WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}
     AND durable_writes = true
-
-
  
-USE log_simulator
+USE log_simulator;
         
 
 CREATE TABLE IF NOT EXISTS logs_por_hora (
@@ -18,7 +16,7 @@ CREATE TABLE IF NOT EXISTS logs_por_hora (
     latencia_ms INT,
     ts          TIMESTAMP,
     PRIMARY KEY ((fecha, hora), log_id)
-)
+);
 
 CREATE TABLE IF NOT EXISTS logs_por_endpoint (
     endpoint    TEXT,
@@ -29,7 +27,7 @@ CREATE TABLE IF NOT EXISTS logs_por_endpoint (
     codigo_http INT,
     latencia_ms INT,
     PRIMARY KEY ((endpoint), ts, log_id)
-) WITH CLUSTERING ORDER BY (ts DESC, log_id ASC)
+) WITH CLUSTERING ORDER BY (ts DESC, log_id ASC);
 
 CREATE TABLE IF NOT EXISTS ips_bloqueadas (
     ip           TEXT PRIMARY KEY,
@@ -37,7 +35,7 @@ CREATE TABLE IF NOT EXISTS ips_bloqueadas (
     nivel        TEXT,
     bloqueada_en TIMESTAMP,
     intentos     INT
-)
+);
 
 CREATE TABLE IF NOT EXISTS intentos_bloqueados (
     ip        TEXT,
@@ -45,5 +43,5 @@ CREATE TABLE IF NOT EXISTS intentos_bloqueados (
     endpoint  TEXT,
     metodo    TEXT,
     PRIMARY KEY ((ip), ts)
-) WITH CLUSTERING ORDER BY (ts DESC)
+) WITH CLUSTERING ORDER BY (ts DESC);
        
