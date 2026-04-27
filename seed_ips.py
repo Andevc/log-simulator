@@ -11,7 +11,7 @@ from cassandra.policies import RoundRobinPolicy # type: ignore
 
 CASSANDRA_HOST = "127.0.0.1"
 CASSANDRA_PORT = 9042
-KEYSPACE       = "log_simulator_1"
+KEYSPACE       = "log_simulator"
 
 IPS_SEED = [
     ("185.220.101.45", "Fuerza bruta detectada",   "ALTO",  47, 120),

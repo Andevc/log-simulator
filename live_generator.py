@@ -15,7 +15,7 @@ from faker import Faker  # type: ignore
 
 CASSANDRA_HOST     = "127.0.0.1"
 CASSANDRA_PORT     = 9042
-KEYSPACE           = "log_simulator_1"
+KEYSPACE           = "log_simulator"
 
 REGISTROS_POR_LOTE = 20    # logs normales por rafaga
 PAUSA_SEGUNDOS     = 1     # segundos entre rafagas

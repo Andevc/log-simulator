@@ -406,6 +406,19 @@ tbody tr:hover td { background: rgba(0,0,0,0.02); }
 }
 .simulador-link:hover { background: rgba(0,119,204,0.15); }
 
+.theme-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 7px 12px; background: rgba(0,168,132,0.1);
+  border: 1px solid rgba(0,168,132,0.3); border-radius: 7px;
+  color: var(--accent); font-family: var(--mono); font-size: 11px;
+  font-weight: 700; letter-spacing: 0.04em; cursor: pointer;
+  transition: all 0.2s;
+}
+.theme-toggle:hover {
+  background: rgba(0,168,132,0.18);
+  border-color: rgba(0,168,132,0.5);
+}
+
 /* ── Loading skeleton ── */
 .skeleton {
   background: linear-gradient(90deg, var(--border) 25%, var(--border2) 50%, var(--border) 75%);
@@ -436,6 +449,7 @@ footer {
   .charts-grid   { grid-template-columns: 1fr; }
   .charts-bottom { grid-template-columns: 1fr; }
   .security-grid { grid-template-columns: 1fr; }
+  .header-right  { gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
 }
 
 /* ── Edición inline de IPs ── */

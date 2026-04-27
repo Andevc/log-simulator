@@ -10,8 +10,20 @@
     href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap"
     rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/static/style.css">
-  <!-- <link rel="stylesheet" href="/static/style-light.css"> -->
+  <link id="theme-style" rel="stylesheet" href="/static/style.css">
+  <script>
+    (function() {
+      var THEME_KEY = 'dashboard-theme';
+      var theme = localStorage.getItem(THEME_KEY);
+      if (theme !== 'dark' && theme !== 'light') theme = 'dark';
+
+      var href = theme === 'light' ? '/static/style-light.css' : '/static/style.css';
+      var link = document.getElementById('theme-style');
+      if (link) link.setAttribute('href', href);
+
+      window.__dashboardTheme = theme;
+    })();
+  </script>
 </head>
 
 <body>
@@ -25,6 +37,7 @@
       </div>
     </div>
     <div class="header-right">
+      <button id="theme-toggle" class="theme-toggle" type="button">Modo claro</button>
       <a href="/usuario" class="simulador-link">Simulador de Usuario →</a>
       <div class="status-dot"></div>
       <span class="status-text">Live</span>
@@ -323,8 +336,36 @@
     LOG SIMULATOR · Universidad Mayor de San Andrés · Bases de Datos 3 · Apache Cassandra 4.1
   </footer>
 
-  <script src="/static/dashboard.js"></script>
-  <!-- <script src="/static/dashboard-light.js"></script> -->
+  <script>
+    (function() {
+      var THEME_KEY = 'dashboard-theme';
+      var currentTheme = window.__dashboardTheme || 'dark';
+      var btn = document.getElementById('theme-toggle');
+
+      function nextTheme(theme) {
+        return theme === 'light' ? 'dark' : 'light';
+      }
+
+      function updateButtonLabel(theme) {
+        if (!btn) return;
+        btn.textContent = theme === 'light' ? 'Modo oscuro' : 'Modo claro';
+      }
+
+      updateButtonLabel(currentTheme);
+
+      if (btn) {
+        btn.addEventListener('click', function() {
+          var targetTheme = nextTheme(currentTheme);
+          localStorage.setItem(THEME_KEY, targetTheme);
+          location.reload();
+        });
+      }
+
+      var script = document.createElement('script');
+      script.src = currentTheme === 'light' ? '/static/dashboard-light.js' : '/static/dashboard.js';
+      document.body.appendChild(script);
+    })();
+  </script>
 </body>
 
 </html>

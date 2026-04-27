@@ -16,7 +16,7 @@ from flask import Flask, jsonify, request, send_from_directory
 
 CASSANDRA_HOST = "127.0.0.1"
 CASSANDRA_PORT = 9042
-KEYSPACE       = "log_simulator_1"
+KEYSPACE       = "log_simulator"
 
 ENDPOINTS_CONOCIDOS = [
     "/api/users",
@@ -824,4 +824,4 @@ if __name__ == "__main__":
     print("Dashboard disponible en: http://localhost:5000")
     print("Presiona Ctrl+C para detener.")
     print()
-    app.run(host="0.0.0.0", port=5050, debug=False)
+    app.run(host="0.0.0.0", port=5000, debug=False)

@@ -568,10 +568,16 @@ async function refreshAll() {
 
 // ─── Arranque ─────────────────────────────────────────────────────────────────
 
-document.addEventListener('DOMContentLoaded', function() {
+function iniciarDashboard() {
   initCharts();
   cargarOpciones().then(function() {
     refreshAll();
     setInterval(refreshAll, 3000);
   });
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', iniciarDashboard);
+} else {
+  iniciarDashboard();
+}

@@ -16,7 +16,7 @@ from faker import Faker # type: ignore
 
 CASSANDRA_HOST  = "127.0.0.1"
 CASSANDRA_PORT  = 9042
-KEYSPACE        = "log_simulator_1"
+KEYSPACE        = "log_simulator"
 TOTAL_REGISTROS = 50_000
 BATCH_SIZE      = 200          # registros por lote de insercion
 CONCURRENCIA    = 50           # peticiones paralelas a Cassandra

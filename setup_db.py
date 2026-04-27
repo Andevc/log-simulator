@@ -42,11 +42,11 @@ def create_schema(session) -> None:
 
     ddl_statements = [
         """
-        CREATE KEYSPACE IF NOT EXISTS log_simulator_1
+        CREATE KEYSPACE IF NOT EXISTS log_simulator
             WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}
             AND durable_writes = true
         """,
-        "USE log_simulator_1",
+        "USE log_simulator",
         """
         CREATE TABLE IF NOT EXISTS logs_por_hora (
             fecha       DATE,
@@ -98,8 +98,8 @@ def create_schema(session) -> None:
 
     print("Schema creado correctamente.")
     print()
-    print("Tablas disponibles en keyspace 'log_simulator_1':")
-    rows = session.execute("SELECT table_name FROM system_schema.tables WHERE keyspace_name='log_simulator_1'")
+    print("Tablas disponibles en keyspace 'log_simulator':")
+    rows = session.execute("SELECT table_name FROM system_schema.tables WHERE keyspace_name='log_simulator'")
     for row in rows:
         print("  -", row.table_name)
 
